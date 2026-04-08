@@ -1,4 +1,4 @@
--- QuantumSpy v2.6 (UI FIX + Safe Hook)
+-- QuantumSpy v2.7 (BIG UI + REAL FIX)
 
 local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
@@ -11,57 +11,57 @@ ScreenGui.Name = "QuantumSpyUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.DisplayOrder = 999999999 
 
--- УВЕЛИЧЕННОЕ ОКНО
+-- 🔥 БОЛЬШОЕ ОКНО
 local Main = Instance.new("Frame", ScreenGui)
 Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Main.Position = UDim2.new(0.5, -250, 0.5, -170)
-Main.Size = UDim2.new(0, 500, 0, 340)
+Main.Position = UDim2.new(0.5, -350, 0.5, -200)
+Main.Size = UDim2.new(0, 700, 0, 400)
 Main.Active = true
 Main.Draggable = true 
 
 local Title = Instance.new("TextLabel", Main)
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "QUANTUM SPY v2.6"
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.Text = "QUANTUM SPY v2.7"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 
--- ЛЕВЫЙ СПИСОК
+-- ЛЕВАЯ ПАНЕЛЬ
 local Scroll = Instance.new("ScrollingFrame", Main)
-Scroll.Position = UDim2.new(0, 5, 0, 35)
-Scroll.Size = UDim2.new(0, 170, 1, -40)
+Scroll.Position = UDim2.new(0, 5, 0, 40)
+Scroll.Size = UDim2.new(0, 220, 1, -45)
 Scroll.CanvasSize = UDim2.new(0, 0, 50, 0)
-Scroll.ScrollBarThickness = 3
+Scroll.ScrollBarThickness = 4
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
--- ПРАВАЯ ПАНЕЛЬ
+-- ПРАВАЯ ЧАСТЬ
 local Details = Instance.new("TextBox", Main)
-Details.Position = UDim2.new(0, 180, 0, 35)
-Details.Size = UDim2.new(1, -185, 0.65, 0)
+Details.Position = UDim2.new(0, 230, 0, 40)
+Details.Size = UDim2.new(1, -235, 0.65, 0)
 Details.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Details.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+Details.TextColor3 = Color3.new(0.9, 0.9, 0.9)
 Details.MultiLine = true
 Details.TextXAlignment = 0
 Details.TextYAlignment = 0
 Details.Text = "Ожидание событий..."
 Details.ClearTextOnFocus = false
-Details.TextWrapped = true
+Details.TextWrapped = false -- 🔥 важно (чтобы script не ломался)
 
--- КНОПКИ (НЕ НАЛЕЗАЮТ)
+-- КНОПКИ
 local CopyArgs = Instance.new("TextButton", Main)
-CopyArgs.Position = UDim2.new(0, 180, 0.7, 5)
-CopyArgs.Size = UDim2.new(0.5, -10, 0.12, 0)
-CopyArgs.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
+CopyArgs.Position = UDim2.new(0, 230, 0.72, 5)
+CopyArgs.Size = UDim2.new(0.5, -15, 0.12, 0)
+CopyArgs.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
 CopyArgs.Text = "COPY ARGS"
 CopyArgs.TextColor3 = Color3.new(1, 1, 1)
 
 local CopyScript = Instance.new("TextButton", Main)
-CopyScript.Position = UDim2.new(0.5, 5, 0.7, 5)
-CopyScript.Size = UDim2.new(0.5, -10, 0.12, 0)
-CopyScript.BackgroundColor3 = Color3.fromRGB(60, 60, 120)
+CopyScript.Position = UDim2.new(0.5, 10, 0.72, 5)
+CopyScript.Size = UDim2.new(0.5, -15, 0.12, 0)
+CopyScript.BackgroundColor3 = Color3.fromRGB(70, 70, 150)
 CopyScript.Text = "COPY SCRIPT"
 CopyScript.TextColor3 = Color3.new(1, 1, 1)
 
--- АНТИ ДУБЛИКАТЫ
+-- АНТИ-ДУБЛИКАТЫ
 local logged = {}
 
 local function argsToString(args)
@@ -87,7 +87,7 @@ local function addLog(rem, args)
     logged[key] = true
 
     local b = Instance.new("TextButton", Scroll)
-    b.Size = UDim2.new(1, 0, 0, 25)
+    b.Size = UDim2.new(1, 0, 0, 28)
     b.Text = rem.Name
     b.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     b.TextColor3 = Color3.new(1, 1, 1)
@@ -121,22 +121,22 @@ CopyScript.MouseButton1Click:Connect(function()
     CopyScript.Text = "COPY SCRIPT"
 end)
 
--- БЕЗОПАСНЫЙ ХУК
+-- 🔥 ГЛАВНЫЙ ФИКС
 local mt = getrawmetatable(game)
 local old = mt.__namecall
 setreadonly(mt, false)
 
 mt.__namecall = newcclosure(function(self, ...)
-    local args = {...}
     local method = getnamecallmethod()
 
     if (method == "FireServer" or method == "fireServer") and not checkcaller() then
         task.spawn(function()
-            pcall(addLog, self, args)
+            pcall(addLog, self, {...})
         end)
     end
 
-    return old(self, unpack(args))
+    -- ❗ ВАЖНО: возвращаем ОРИГИНАЛЬНЫЕ ...
+    return old(self, ...)
 end)
 
 setreadonly(mt, true)
