@@ -1,4 +1,4 @@
--- QuantumSpy v2.8 (BIG UI + REAL FIX)
+-- QuantumSpy v2.9 (BIG UI + REAL FIX)
 
 local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
@@ -21,7 +21,7 @@ Main.Draggable = true
 
 local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, 0, 0, 35)
-Title.Text = "QUANTUM SPY v2.8"
+Title.Text = "QUANTUM SPY v2.9"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 
