@@ -14,8 +14,8 @@ ScreenGui.DisplayOrder = 999999999
 -- 🔥 БОЛЬШОЕ ОКНО
 local Main = Instance.new("Frame", ScreenGui)
 Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Main.Position = UDim2.new(0.5, -350, 0.5, -200)
-Main.Size = UDim2.new(0, 700, 0, 400)
+Main.Size = UDim2.new(0, 500, 0, 340)
+Main.Position = UDim2.new(0.5, -250, 0.5, -170)
 Main.Active = true
 Main.Draggable = true 
 
@@ -36,7 +36,7 @@ Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 -- ПРАВАЯ ЧАСТЬ
 local Details = Instance.new("TextBox", Main)
 Details.Position = UDim2.new(0, 230, 0, 40)
-Details.Size = UDim2.new(1, -235, 0.65, 0)
+Details.Size = UDim2.new(1, -235, 0.6, 0)
 Details.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Details.TextColor3 = Color3.new(0.9, 0.9, 0.9)
 Details.MultiLine = true
@@ -48,15 +48,15 @@ Details.TextWrapped = false -- 🔥 важно (чтобы script не лома�
 
 -- КНОПКИ
 local CopyArgs = Instance.new("TextButton", Main)
-CopyArgs.Position = UDim2.new(0, 230, 0.72, 5)
-CopyArgs.Size = UDim2.new(0.5, -15, 0.12, 0)
+CopyArgs.Position = UDim2.new(0, 230, 0.65, 5)
+CopyArgs.Size = UDim2.new(1, -235, 0.1, 0)
 CopyArgs.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
 CopyArgs.Text = "COPY ARGS"
 CopyArgs.TextColor3 = Color3.new(1, 1, 1)
 
 local CopyScript = Instance.new("TextButton", Main)
-CopyScript.Position = UDim2.new(0.5, 10, 0.72, 5)
-CopyScript.Size = UDim2.new(0.5, -15, 0.12, 0)
+CopyScript.Position = UDim2.new(0, 230, 0.77, 5)
+CopyScript.Size = UDim2.new(1, -235, 0.1, 0)
 CopyScript.BackgroundColor3 = Color3.fromRGB(70, 70, 150)
 CopyScript.Text = "COPY SCRIPT"
 CopyScript.TextColor3 = Color3.new(1, 1, 1)
