@@ -1,4 +1,4 @@
--- QuantumSpy v2.7 (BIG UI + REAL FIX)
+-- QuantumSpy v2.8 (BIG UI + REAL FIX)
 
 local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
@@ -126,17 +126,18 @@ local mt = getrawmetatable(game)
 local old = mt.__namecall
 setreadonly(mt, false)
 
-mt.__namecall = newcclosure(function(self, ...)
+mt.__namecall = (newcclosure or function(f) return f end)(function(self, ...)
     local method = getnamecallmethod()
+    local args = {...} -- сохраняем аргументы
 
     if (method == "FireServer" or method == "fireServer") and not checkcaller() then
         task.spawn(function()
-            pcall(addLog, self, {...})
+            pcall(addLog, self, args)
         end)
     end
 
-    -- ❗ ВАЖНО: возвращаем ОРИГИНАЛЬНЫЕ ...
-    return old(self, ...)
+    -- ВАЖНО: используем unpack вместо ...
+    return old(self, table.unpack(args))
 end)
 
 setreadonly(mt, true)
