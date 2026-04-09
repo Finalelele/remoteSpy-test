@@ -1,4 +1,4 @@
--- [[ QUANTUM SPY v4.9 ]] --
+-- [[ QUANTUM SPY v5.0 ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -11,27 +11,27 @@ local Main = Instance.new("Frame", ScreenGui)
 Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20); Main.Size = UDim2.new(0, 620, 0, 400)
 Main.Position = UDim2.new(0.5, -310, 0.5, -200); Main.Active = true; Main.Draggable = true
 
--- HEADER & MINIMIZE logic
+-- HEADER
 local Header = Instance.new("Frame", Main)
 Header.Size = UDim2.new(1, 0, 0, 30); Header.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+
 local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(0.7, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0.05, 0, 0, 0)
-Title.Text = "QUANTUM SPY v4.9 [ULTIMATE SORTER]"; Title.TextColor3 = Color3.new(1, 1, 1); Title.TextXAlignment = 0
+Title.Size = UDim2.new(0.5, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0.05, 0, 0, 0)
+Title.Text = "QUANTUM SPY v5.0"; Title.TextColor3 = Color3.new(1, 1, 1); Title.TextXAlignment = 0
+
+local ControlBtn = Instance.new("TextButton", Header)
+ControlBtn.Size = UDim2.new(0, 100, 0, 24); ControlBtn.Position = UDim2.new(1, -145, 0.5, -12)
+ControlBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255); ControlBtn.Text = "CONTROL: ON"
+ControlBtn.TextColor3 = Color3.new(1, 1, 1); ControlBtn.Font = Enum.Font.SourceSansBold
+
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 30, 0, 30); MinBtn.Position = UDim2.new(1, -35, 0, 0); MinBtn.Text = "_"
+MinBtn.TextColor3 = Color3.new(1, 1, 1)
 
+-- CONTENT
 local TweenFrame = Instance.new("Frame", Main)
 TweenFrame.Size = UDim2.new(1, 0, 1, -30); TweenFrame.Position = UDim2.new(0, 0, 0, 30); TweenFrame.BackgroundTransparency = 1
 
-local minimized = false
-MinBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    TweenFrame.Visible = not minimized
-    Main:TweenSize(minimized and UDim2.new(0, 200, 0, 30) or UDim2.new(0, 620, 0, 400), "Out", "Quad", 0.2, true)
-    MinBtn.Text = minimized and "+" or "_"
-end)
-
--- UI ELEMENTS
 local Scroll = Instance.new("ScrollingFrame", TweenFrame)
 Scroll.Position = UDim2.new(0, 5, 0, 5); Scroll.Size = UDim2.new(0, 220, 1, -15); Scroll.ScrollBarThickness = 4
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
@@ -42,21 +42,35 @@ SpamFrame.BackgroundColor3 = Color3.fromRGB(30, 15, 15); Instance.new("UIListLay
 
 local Details = Instance.new("TextBox", TweenFrame)
 Details.Position = UDim2.new(0, 230, 0, 5); Details.Size = UDim2.new(1, -235, 0.55, 0)
-Details.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Details.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+Details.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Details.TextColor3 = Color3.new(1, 1, 1)
 Details.MultiLine = true; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.ClearTextOnFocus = false; Details.TextWrapped = true
 
 local CopyArgs = Instance.new("TextButton", TweenFrame)
 CopyArgs.Position = UDim2.new(0, 230, 0.65, 0); CopyArgs.Size = UDim2.new(1, -235, 0.15, 0)
-CopyArgs.BackgroundColor3 = Color3.fromRGB(40, 80, 40); CopyArgs.Text = "COPY ARGS"
+CopyArgs.BackgroundColor3 = Color3.fromRGB(60, 120, 60); CopyArgs.Text = "COPY ARGS"; CopyArgs.TextColor3 = Color3.new(1, 1, 1)
 
 local CopyScript = Instance.new("TextButton", TweenFrame)
 CopyScript.Position = UDim2.new(0, 230, 0.82, 0); CopyScript.Size = UDim2.new(1, -235, 0.15, 0)
-CopyScript.BackgroundColor3 = Color3.fromRGB(50, 50, 100); CopyScript.Text = "COPY SCRIPT"
+CopyScript.BackgroundColor3 = Color3.fromRGB(80, 80, 160); CopyScript.Text = "COPY SCRIPT"; CopyScript.TextColor3 = Color3.new(1, 1, 1)
 
--- LOGIC UTILS
-local history = {} -- Для фильтра Уникальности (Имя + Аргументы)
-local spamStats = {} -- Для фильтра Частоты (Путь)
+-- LOGIC STATE
+local history, spamStats, pathHistory = {}, {}, {}
 local selectedData = nil
+local controlMode = true
+
+local function clearLogs()
+    for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    for _, v in pairs(SpamFrame:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    history, spamStats, pathHistory = {}, {}, {}
+    Details.Text = ""
+end
+
+ControlBtn.MouseButton1Click:Connect(function()
+    controlMode = not controlMode
+    ControlBtn.Text = controlMode and "CONTROL: ON" or "CONTROL: OFF"
+    ControlBtn.BackgroundColor3 = controlMode and Color3.fromRGB(150, 50, 255) or Color3.fromRGB(80, 80, 80)
+    clearLogs()
+end)
 
 local function getSafePath(obj)
     local path = ""
@@ -74,7 +88,13 @@ end
 local function formatVal(v)
     if v == nil then return "nil" end
     local t = typeof(v)
-    if t == "table" then return "{table}"
+    if t == "table" then
+        local s = "{"
+        for k, val in pairs(v) do 
+            s = s .. tostring(k) .. "=" .. (typeof(val) == "string" and '"'..val..'"' or tostring(val)) .. ", "
+            if #s > 50 then s = s .. "..." break end
+        end
+        return s:gsub(", $", "") .. "}"
     elseif t == "Instance" then return getSafePath(v)
     elseif t == "string" then return '"'..v..'"'
     else return tostring(v) end
@@ -84,7 +104,9 @@ local function addLog(rem, args, isSelf)
     local name = rem.Name
     local fullPath = getSafePath(rem)
     
-    -- Генерируем строку аргументов для проверки
+    -- Фильтр 3: КОНТРОЛЬ (Путь)
+    if controlMode and pathHistory[fullPath] and not isSelf then return end
+
     local argTable = {}
     for i=1, 15 do 
         if args[i] == nil and i > 1 then break end
@@ -92,57 +114,55 @@ local function addLog(rem, args, isSelf)
     end
     local argStr = table.concat(argTable, ", ")
     
-    -- Ключи для фильтров
     local uniqueKey = name .. "|" .. argStr
-    local pathKey = fullPath
     
-    -- 1. СИСТЕМА СОРТИРОВКИ СПАМА (Путь)
+    -- Фильтр 1: СПАМ (Частота по Пути)
     if not isSelf then
-        if not spamStats[pathKey] then spamStats[pathKey] = {count = 0, lastTime = 0, blocked = false} end
-        local stat = spamStats[pathKey]
-        
-        if stat.blocked then return end -- Полная блокировка после 10 вызовов
+        if not spamStats[fullPath] then spamStats[fullPath] = {count = 0, lastTime = 0, blocked = false} end
+        local stat = spamStats[fullPath]
+        if stat.blocked then return end
         
         local now = tick()
         local isSpamming = (now - stat.lastTime < 0.8)
-        stat.lastTime = now
-        stat.count = stat.count + 1
+        stat.lastTime = now; stat.count = stat.count + 1
         
-        if stat.count > 10 then
-            stat.blocked = true
-            warn("[QuantumSpy] BLOCKED: " .. pathKey)
-            return
-        end
+        if stat.count > 10 then stat.blocked = true; return end
         
-        -- Если это спам по пути - отправляем в красный список
         if isSpamming then
             local b = Instance.new("TextButton", SpamFrame)
             b.Size = UDim2.new(1, 0, 0, 26); b.Text = name; b.ZIndex = 15
             b.BackgroundColor3 = Color3.fromRGB(70, 30, 30); b.TextColor3 = Color3.new(1, 1, 1)
-            b.MouseButton1Click:Connect(function()
-                if selectedData then selectedData.btn.BackgroundColor3 = selectedData.color end
-                selectedData = {btn = b, color = Color3.fromRGB(70, 30, 30)}
-                b.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
-                Details.Text = "Path: "..fullPath.."\n\nArgs: "..argStr.."\n\nScript: "..fullPath..":FireServer("..argStr..")"
+            task.defer(function() -- Фикс кликов
+                b.MouseButton1Click:Connect(function()
+                    if selectedData then selectedData.btn.BackgroundColor3 = selectedData.color end
+                    selectedData = {btn = b, color = Color3.fromRGB(70, 30, 30)}
+                    b.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
+                    Details.Text = "Path: "..fullPath.."\n\nArgs: "..argStr.."\n\nScript: "..fullPath..":FireServer("..argStr..")"
+                end)
             end)
-            return -- Спам ивенты не идут в основной список
+            return
         end
     end
 
-    -- 2. СИСТЕМА УНИКАЛЬНОСТИ (Имя + Аргументы)
+    -- Фильтр 2: УНИКАЛЬНОСТЬ (Аргументы)
     if history[uniqueKey] and not isSelf then return end
+    
+    -- Сохраняем в истории
     history[uniqueKey] = true
+    pathHistory[fullPath] = true
     
     local b = Instance.new("TextButton", Scroll)
     b.Size = UDim2.new(1, 0, 0, 26); b.Text = (isSelf and "[S] " or "") .. name; b.ZIndex = 15
     local defCol = isSelf and Color3.fromRGB(30, 60, 30) or Color3.fromRGB(40, 40, 40)
     b.BackgroundColor3 = defCol; b.TextColor3 = Color3.new(1, 1, 1)
     
-    b.MouseButton1Click:Connect(function()
-        if selectedData then selectedData.btn.BackgroundColor3 = selectedData.color end
-        selectedData = {btn = b, color = defCol}
-        b.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
-        Details.Text = "Path: "..fullPath.."\n\nArgs: "..argStr.."\n\nScript: "..fullPath..":FireServer("..argStr..")"
+    task.defer(function() -- Фикс кликов
+        b.MouseButton1Click:Connect(function()
+            if selectedData then selectedData.btn.BackgroundColor3 = selectedData.color end
+            selectedData = {btn = b, color = defCol}
+            b.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
+            Details.Text = "Path: "..fullPath.."\n\nArgs: "..argStr.."\n\nScript: "..fullPath..":FireServer("..argStr..")"
+        end)
     end)
 end
 
