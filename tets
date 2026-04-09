@@ -1,61 +1,53 @@
 local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-
--- Удаляем старые версии
 if playerGui:FindFirstChild("QuantumSpyUI") then playerGui.QuantumSpyUI:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui", playerGui)
 ScreenGui.Name = "QuantumSpyUI"
-ScreenGui.ResetOnSpawn = false
 ScreenGui.DisplayOrder = 2147483647
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
 local Main = Instance.new("Frame", ScreenGui)
-Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Main.Size = UDim2.new(0, 600, 0, 380)
-Main.Position = UDim2.new(0.5, -300, 0.5, -190)
-Main.Active = true; Main.Draggable = true; Main.ZIndex = 100
+Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Main.Size = UDim2.new(0, 600, 0, 400)
+Main.Position = UDim2.new(0.5, -300, 0.5, -200)
+Main.Active = true; Main.Draggable = true
 
--- Основной список
+-- 1. ЗАГОЛОВОК (Исправлено)
+local Header = Instance.new("Frame", Main)
+Header.Size = UDim2.new(1, 0, 0, 30)
+Header.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+local Title = Instance.new("TextLabel", Header)
+Title.Size = UDim2.new(1, 0, 1, 0); Title.BackgroundTransparency = 1
+Title.Text = "QUANTUM SPY v3.9 (STABLE)"; Title.TextColor3 = Color3.new(1, 1, 1)
+
 local Scroll = Instance.new("ScrollingFrame", Main)
-Scroll.Position = UDim2.new(0, 5, 0, 40); Scroll.Size = UDim2.new(0, 220, 1, -45)
-Scroll.CanvasSize = UDim2.new(0, 0, 50, 0); Scroll.ZIndex = 101
+Scroll.Position = UDim2.new(0, 5, 0, 35); Scroll.Size = UDim2.new(0, 220, 1, -40)
+Scroll.CanvasSize = UDim2.new(0, 0, 100, 0)
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
--- Боковой список (Spam)
-local SpamFrame = Instance.new("ScrollingFrame", Main)
-SpamFrame.Size = UDim2.new(0, 150, 1, -45)
-SpamFrame.Position = UDim2.new(1, 5, 0, 40)
-SpamFrame.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-SpamFrame.ZIndex = 101; SpamFrame.CanvasSize = UDim2.new(0,0,10,0)
-Instance.new("UIListLayout", SpamFrame).SortOrder = Enum.SortOrder.LayoutOrder
-
 local Details = Instance.new("TextBox", Main)
-Details.Position = UDim2.new(0, 230, 0, 40); Details.Size = UDim2.new(1, -235, 0.5, 0)
-Details.BackgroundColor3 = Color3.fromRGB(20, 20, 20); Details.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+Details.Position = UDim2.new(0, 230, 0, 35); Details.Size = UDim2.new(1, -235, 0.5, 0)
+Details.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Details.TextColor3 = Color3.new(0.8, 0.8, 0.8)
 Details.MultiLine = true; Details.TextXAlignment = 0; Details.TextYAlignment = 0
-Details.Text = "Logs..."; Details.ClearTextOnFocus = false; Details.TextWrapped = true; Details.ZIndex = 102
+Details.Text = "Waiting for events..."; Details.ClearTextOnFocus = false; Details.TextWrapped = true
 
 local CopyArgs = Instance.new("TextButton", Main)
-CopyArgs.Position = UDim2.new(0, 230, 0.6, 5); CopyArgs.Size = UDim2.new(1, -235, 0.12, 0)
-CopyArgs.BackgroundColor3 = Color3.fromRGB(60, 120, 60); CopyArgs.Text = "COPY ARGS"; CopyArgs.ZIndex = 102
+CopyArgs.Position = UDim2.new(0, 230, 0.65, 0); CopyArgs.Size = UDim2.new(1, -235, 0.15, 0)
+CopyArgs.BackgroundColor3 = Color3.fromRGB(50, 100, 50); CopyArgs.Text = "COPY ARGS"; CopyArgs.TextColor3 = Color3.new(1, 1, 1)
 
 local CopyScript = Instance.new("TextButton", Main)
-CopyScript.Position = UDim2.new(0, 230, 0.75, 5); CopyScript.Size = UDim2.new(1, -235, 0.12, 0)
-CopyScript.BackgroundColor3 = Color3.fromRGB(70, 70, 150); CopyScript.Text = "COPY SCRIPT"; CopyScript.ZIndex = 102
+CopyScript.Position = UDim2.new(0, 230, 0.82, 0); CopyScript.Size = UDim2.new(1, -235, 0.15, 0)
+CopyScript.BackgroundColor3 = Color3.fromRGB(60, 60, 120); CopyScript.Text = "COPY SCRIPT"; CopyScript.TextColor3 = Color3.new(1, 1, 1)
 
--- ЛОГИКА
-local callCounts, lastTime, loggedKeys, blacklisted = {}, {}, {}, {}
+-- ЛОГИКА (БЕЗ WARN И С ФИЛЬТРОМ RELIABLE)
+local loggedData = {}
 local curArgs, curScript = "", ""
 
--- Безопасное получение пути (фикс ошибки capability)
 local function getSafePath(obj)
     local s, res = pcall(function() return obj:GetFullName() end)
-    if s then return res end
-    local s2, res2 = pcall(function() return obj.Name end)
-    return s2 and ("Target: " .. res2) or "Unknown_Instance (No Access)"
+    return s and res or "Unknown_Path"
 end
 
-local function safeFormat(v)
+local function formatVal(v)
     local t = typeof(v)
     if t == "table" then return "{table}"
     elseif t == "Instance" then return getSafePath(v)
@@ -63,40 +55,30 @@ local function safeFormat(v)
     else return tostring(v) end
 end
 
-local function addLog(rem, args, isSelf)
-    local success, err = pcall(function()
-        if not rem then return end
-        local name = (pcall(function() return rem.Name end) and rem.Name) or "UnknownRemote"
-        if blacklisted[name] and not isSelf then return end
-
+local function addLog(rem, args)
+    pcall(function()
+        local name = rem.Name
         local argTable = {}
-        for _, v in pairs(args) do table.insert(argTable, safeFormat(v)) end
+        for _, v in pairs(args) do table.insert(argTable, formatVal(v)) end
         local argStr = table.concat(argTable, ", ")
-        local key = name .. "|" .. argStr
         
-        local now = tick()
-        local isSpam = lastTime[name] and (now - lastTime[name] < 0.5)
+        -- 2. ФИЛЬТР RELIABLE (Исправлено)
+        local key = name .. argStr
+        if loggedData[key] then return end
+        loggedData[key] = true
+
+        local b = Instance.new("TextButton", Scroll)
+        b.Size = UDim2.new(1, 0, 0, 25); b.Text = name
+        b.BackgroundColor3 = Color3.fromRGB(45, 45, 45); b.TextColor3 = Color3.new(1, 1, 1)
         
-        if not isSelf then
-            callCounts[name] = (callCounts[name] or 0) + 1
-            lastTime[name] = now
-            if callCounts[name] > 10 then blacklisted[name] = true; return end
-            if loggedKeys[key] then return end
-        end
-        
-        loggedKeys[key] = true
-        local target = (isSpam and not isSelf) and SpamFrame or Scroll
-        
-        local b = Instance.new("TextButton", target)
-        b.Size = UDim2.new(1, 0, 0, 25); b.Text = (isSelf and "[S] " or "") .. name
-        b.BackgroundColor3 = isSelf and Color3.fromRGB(40, 70, 40) or (isSpam and Color3.fromRGB(80, 40, 40) or Color3.fromRGB(50, 50, 50))
-        b.TextColor3 = Color3.new(1, 1, 1); b.ZIndex = 110
-        
+        -- 3. ЗАЩИТА ОТ ЗАВИСАНИЙ (Исправлено)
         b.MouseButton1Click:Connect(function()
-            local path = getSafePath(rem)
-            curArgs = argStr
-            curScript = "game." .. path .. ":FireServer(" .. argStr .. ")"
-            Details.Text = "Path: "..path.."\n\nArgs:\n"..argStr.."\n\nScript:\n"..curScript
+            pcall(function()
+                local path = getSafePath(rem)
+                curArgs = argStr
+                curScript = "game." .. path .. ":FireServer(" .. argStr .. ")"
+                Details.Text = "Path: " .. path .. "\n\nArgs: " .. argStr .. "\n\nScript: " .. curScript
+            end)
         end)
     end)
 end
@@ -110,11 +92,10 @@ setreadonly(mt, false)
 
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
-    local args = {...}
     if method == "FireServer" or method == "fireServer" then
-        local isSelf = checkcaller()
-        task.spawn(function() addLog(self, args, isSelf) end)
+        local args = {...}
+        task.spawn(function() addLog(self, args) end)
     end
-    return old(self, table.unpack(args))
+    return old(self, ...)
 end)
 setreadonly(mt, true)
