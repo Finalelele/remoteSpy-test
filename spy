@@ -1,69 +1,83 @@
--- [[ QUANTUM SPY v4.2 ]] --
--- Use: loadstring(game:HttpGet("YOUR_URL?t="..tick()))()
+-- [[ QUANTUM SPY v4.5 ]] --
+-- Bypass Cache: loadstring(game:HttpGet("YOUR_URL?t="..tick()))()
 
-local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+local player = game:GetService("Players").LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 if playerGui:FindFirstChild("QuantumSpyUI") then playerGui.QuantumSpyUI:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui", playerGui)
 ScreenGui.Name = "QuantumSpyUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.DisplayOrder = 2147483647
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
 local Main = Instance.new("Frame", ScreenGui)
-Main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 Main.Size = UDim2.new(0, 620, 0, 400)
 Main.Position = UDim2.new(0.5, -310, 0.5, -200)
-Main.Active = true; Main.Draggable = true; Main.ZIndex = 100
+Main.Active = true; Main.Draggable = true
 
 -- HEADER
 local Header = Instance.new("Frame", Main)
 Header.Size = UDim2.new(1, 0, 0, 30)
-Header.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-Header.ZIndex = 101
-
+Header.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(1, 0, 1, 0); Title.BackgroundTransparency = 1
-Title.Text = "QUANTUM SPY v4.2 [STABLE]"; Title.TextColor3 = Color3.new(1, 1, 1)
-Title.ZIndex = 102
+Title.Text = "QUANTUM SPY v4.5 [STABLE PATH]"; Title.TextColor3 = Color3.new(1, 1, 1)
 
 -- LISTS
 local Scroll = Instance.new("ScrollingFrame", Main)
-Scroll.Position = UDim2.new(0, 5, 0, 35); Scroll.Size = UDim2.new(0, 220, 1, -40)
-Scroll.CanvasSize = UDim2.new(0, 0, 100, 0); Scroll.ZIndex = 101
-Scroll.ScrollBarThickness = 4
+Scroll.Position = UDim2.new(0, 5, 0, 35); Scroll.Size = UDim2.new(0, 220, 1, -45)
+Scroll.CanvasSize = UDim2.new(0, 0, 100, 0); Scroll.ScrollBarThickness = 4
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
 local SpamFrame = Instance.new("ScrollingFrame", Main)
-SpamFrame.Size = UDim2.new(0, 160, 1, -40)
+SpamFrame.Size = UDim2.new(0, 160, 1, -45)
 SpamFrame.Position = UDim2.new(1, 5, 0, 35)
-SpamFrame.BackgroundColor3 = Color3.fromRGB(35, 20, 20)
-SpamFrame.CanvasSize = UDim2.new(0, 0, 10, 0); SpamFrame.ZIndex = 101
+SpamFrame.BackgroundColor3 = Color3.fromRGB(30, 15, 15)
+SpamFrame.CanvasSize = UDim2.new(0, 0, 20, 0); SpamFrame.ScrollBarThickness = 2
 Instance.new("UIListLayout", SpamFrame).SortOrder = Enum.SortOrder.LayoutOrder
 
 local Details = Instance.new("TextBox", Main)
 Details.Position = UDim2.new(0, 230, 0, 35); Details.Size = UDim2.new(1, -235, 0.55, 0)
-Details.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Details.TextColor3 = Color3.new(0.85, 0.85, 0.85)
+Details.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Details.TextColor3 = Color3.new(0.8, 0.8, 0.8)
 Details.MultiLine = true; Details.TextXAlignment = 0; Details.TextYAlignment = 0
-Details.Text = "Logs..."; Details.ClearTextOnFocus = false; Details.TextWrapped = true; Details.ZIndex = 102
+Details.Text = "Logs..."; Details.ClearTextOnFocus = false; Details.TextWrapped = true
 
 local CopyArgs = Instance.new("TextButton", Main)
 CopyArgs.Position = UDim2.new(0, 230, 0.68, 0); CopyArgs.Size = UDim2.new(1, -235, 0.13, 0)
-CopyArgs.BackgroundColor3 = Color3.fromRGB(50, 90, 50); CopyArgs.Text = "COPY ARGS"; CopyArgs.TextColor3 = Color3.new(1, 1, 1); CopyArgs.ZIndex = 102
+CopyArgs.BackgroundColor3 = Color3.fromRGB(40, 80, 40); CopyArgs.Text = "COPY ARGS"; CopyArgs.TextColor3 = Color3.new(1, 1, 1)
 
 local CopyScript = Instance.new("TextButton", Main)
 CopyScript.Position = UDim2.new(0, 230, 0.83, 0); CopyScript.Size = UDim2.new(1, -235, 0.13, 0)
-CopyScript.BackgroundColor3 = Color3.fromRGB(55, 55, 110); CopyScript.Text = "COPY SCRIPT"; CopyScript.TextColor3 = Color3.new(1, 1, 1); CopyScript.ZIndex = 102
+CopyScript.BackgroundColor3 = Color3.fromRGB(50, 50, 100); CopyScript.Text = "COPY SCRIPT"; CopyScript.TextColor3 = Color3.new(1, 1, 1)
 
 -- LOGIC
 local callCounts, lastTime, loggedKeys, blacklisted = {}, {}, {}, {}
 local curArgs, curScript = "", ""
 
 local function getSafePath(obj)
-    local s, res = pcall(function() return obj:GetFullName() end)
-    if s then return res end
-    local s2, res2 = pcall(function() return obj.Name end)
-    return s2 and res2 or "Unknown_Remote"
+    local path = ""
+    local success, err = pcall(function()
+        local temp = obj
+        while temp and temp ~= game do
+            local name = temp.Name
+            -- Если имя содержит пробелы или спецсимволы, оборачиваем в [""]
+            if name:match("[%s%W]") then
+                name = '["' .. name .. '"]'
+                path = name .. (path ~= "" and "." .. path or "")
+            else
+                path = name .. (path ~= "" and "." .. path or "")
+            end
+            temp = temp.Parent
+        end
+    end)
+    
+    if path ~= "" then 
+        -- Исправляем возможные двойные точки при использовании [""]
+        path = path:gsub("%.%[", "[")
+        return "game." .. path 
+    end
+    return "Unknown_Path"
 end
 
 local function formatVal(v)
@@ -79,7 +93,7 @@ local function addLog(rem, args, isSelf)
     local success, err = pcall(function()
         local name = rem.Name
         local argTable = {}
-        for i=1, 10 do -- Берем до 10 аргументов для стабильности
+        for i=1, 10 do 
             local v = args[i]
             if v == nil and i > 1 then break end
             table.insert(argTable, formatVal(v))
@@ -90,12 +104,16 @@ local function addLog(rem, args, isSelf)
         if blacklisted[name] and not isSelf then return end
         
         local now = tick()
-        local isSpam = lastTime[name] and (now - lastTime[name] < 0.5)
+        local isSpam = lastTime[name] and (now - lastTime[name] < 0.8) 
         
         if not isSelf then
             callCounts[name] = (callCounts[name] or 0) + 1
             lastTime[name] = now
-            if callCounts[name] > 25 then blacklisted[name] = true; return end
+            if callCounts[name] > 10 then -- Лимит 10 как просил
+                blacklisted[name] = true
+                warn("[QuantumSpy] Remote " .. name .. " заблокирован из-за спама (>10 вызовов)")
+                return 
+            end
             if loggedKeys[key] then return end
         end
         
@@ -105,17 +123,17 @@ local function addLog(rem, args, isSelf)
         local b = Instance.new("TextButton", target)
         b.Size = UDim2.new(1, 0, 0, 26)
         b.Text = (isSelf and "[S] " or "") .. name
-        b.BackgroundColor3 = isSelf and Color3.fromRGB(40, 70, 40) or (isSpam and Color3.fromRGB(80, 40, 40) or Color3.fromRGB(45, 45, 45))
-        b.TextColor3 = Color3.new(1, 1, 1); b.ZIndex = 105
+        b.BackgroundColor3 = isSelf and Color3.fromRGB(30, 60, 30) or (isSpam and Color3.fromRGB(70, 30, 30) or Color3.fromRGB(40, 40, 40))
+        b.TextColor3 = Color3.new(1, 1, 1)
         
         b.MouseButton1Click:Connect(function()
-            local path = getSafePath(rem)
+            local fullPath = getSafePath(rem)
             curArgs = argStr
-            curScript = "game." .. path .. ":FireServer(" .. argStr .. ")"
-            Details.Text = "Path: " .. path .. "\n\nArgs: " .. argStr .. "\n\nScript: " .. curScript
+            curScript = fullPath .. ":FireServer(" .. argStr .. ")"
+            Details.Text = "Path: " .. fullPath .. "\n\nArgs: " .. argStr .. "\n\nScript: " .. curScript
         end)
     end)
-    if not success then warn("[QS BUG v4.2]: " .. tostring(err)) end
+    if not success then warn("[QS BUG v4.5]: " .. tostring(err)) end
 end
 
 CopyArgs.MouseButton1Click:Connect(function() setclipboard(curArgs) end)
