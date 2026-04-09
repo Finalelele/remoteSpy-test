@@ -1,64 +1,56 @@
--- [[ QUANTUM SPY v4.7 ]] --
+-- [[ QUANTUM SPY v4.8 ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 if playerGui:FindFirstChild("QuantumSpyUI") then playerGui.QuantumSpyUI:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui", playerGui)
-ScreenGui.Name = "QuantumSpyUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.DisplayOrder = 2147483647
+ScreenGui.Name = "QuantumSpyUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 2147483647
 
 local Main = Instance.new("Frame", ScreenGui)
-Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Main.Size = UDim2.new(0, 620, 0, 400)
-Main.Position = UDim2.new(0.5, -310, 0.5, -200)
-Main.Active = true; Main.Draggable = true; Main.ZIndex = 10 -- Базовый ZIndex
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20); Main.Size = UDim2.new(0, 620, 0, 400)
+Main.Position = UDim2.new(0.5, -310, 0.5, -200); Main.Active = true; Main.Draggable = true
 
 -- HEADER
 local Header = Instance.new("Frame", Main)
-Header.Size = UDim2.new(1, 0, 0, 30)
-Header.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-Header.ZIndex = 11
+Header.Size = UDim2.new(1, 0, 0, 30); Header.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0.7, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0.05, 0, 0, 0)
-Title.Text = "QUANTUM SPY v4.7 [CLICK FIX]"; Title.TextColor3 = Color3.new(1, 1, 1); Title.TextXAlignment = 0; Title.ZIndex = 12
+Title.Text = "QUANTUM SPY v4.8 [SYNC FIX]"; Title.TextColor3 = Color3.new(1, 1, 1); Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 30, 0, 30); MinBtn.Position = UDim2.new(1, -35, 0, 0)
-MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 55); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.ZIndex = 12
+MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 55); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1)
 
--- CONTENT (Переименован TweenFrame для TweenSize)
+-- CONTENT
 local TweenFrame = Instance.new("Frame", Main)
-TweenFrame.Size = UDim2.new(1, 0, 1, -30); TweenFrame.Position = UDim2.new(0, 0, 0, 30); TweenFrame.BackgroundTransparency = 1; TweenFrame.ZIndex = 10
+TweenFrame.Size = UDim2.new(1, 0, 1, -30); TweenFrame.Position = UDim2.new(0, 0, 0, 30); TweenFrame.BackgroundTransparency = 1
 
---LISTS
 local Scroll = Instance.new("ScrollingFrame", TweenFrame)
 Scroll.Position = UDim2.new(0, 5, 0, 5); Scroll.Size = UDim2.new(0, 220, 1, -15)
-Scroll.CanvasSize = UDim2.new(0, 0, 100, 0); Scroll.ScrollBarThickness = 4; Scroll.ZIndex = 11
+Scroll.CanvasSize = UDim2.new(0, 0, 100, 0); Scroll.ScrollBarThickness = 4
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
 local SpamFrame = Instance.new("ScrollingFrame", TweenFrame)
-SpamFrame.Size = UDim2.new(0, 160, 1, -15)
-SpamFrame.Position = UDim2.new(1, 5, 0, 5)
-SpamFrame.BackgroundColor3 = Color3.fromRGB(30, 15, 15); SpamFrame.CanvasSize = UDim2.new(0, 0, 20, 0); SpamFrame.ZIndex = 11
+SpamFrame.Size = UDim2.new(0, 160, 1, -15); SpamFrame.Position = UDim2.new(1, 5, 0, 5)
+SpamFrame.BackgroundColor3 = Color3.fromRGB(30, 15, 15); SpamFrame.CanvasSize = UDim2.new(0, 0, 20, 0)
 Instance.new("UIListLayout", SpamFrame).SortOrder = Enum.SortOrder.LayoutOrder
 
 local Details = Instance.new("TextBox", TweenFrame)
 Details.Position = UDim2.new(0, 230, 0, 5); Details.Size = UDim2.new(1, -235, 0.55, 0)
 Details.BackgroundColor3 = Color3.fromRGB(10, 10, 10); Details.TextColor3 = Color3.new(0.8, 0.8, 0.8)
-Details.MultiLine = true; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.ClearTextOnFocus = false; Details.TextWrapped = true; Details.ZIndex = 11
+Details.MultiLine = true; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.ClearTextOnFocus = false; Details.TextWrapped = true
 
 local CopyArgs = Instance.new("TextButton", TweenFrame)
 CopyArgs.Position = UDim2.new(0, 230, 0.65, 0); CopyArgs.Size = UDim2.new(1, -235, 0.15, 0)
-CopyArgs.BackgroundColor3 = Color3.fromRGB(40, 80, 40); CopyArgs.Text = "COPY ARGS"; CopyArgs.TextColor3 = Color3.new(1, 1, 1); CopyArgs.ZIndex = 11
+CopyArgs.BackgroundColor3 = Color3.fromRGB(40, 80, 40); CopyArgs.Text = "COPY ARGS"; CopyArgs.TextColor3 = Color3.new(1, 1, 1)
 
 local CopyScript = Instance.new("TextButton", TweenFrame)
 CopyScript.Position = UDim2.new(0, 230, 0.82, 0); CopyScript.Size = UDim2.new(1, -235, 0.15, 0)
-CopyScript.BackgroundColor3 = Color3.fromRGB(50, 50, 100); CopyScript.Text = "COPY SCRIPT"; CopyScript.TextColor3 = Color3.new(1, 1, 1); CopyScript.ZIndex = 11
+CopyScript.BackgroundColor3 = Color3.fromRGB(50, 50, 100); CopyScript.Text = "COPY SCRIPT"; CopyScript.TextColor3 = Color3.new(1, 1, 1)
 
--- LOGIC & UI STATE
+-- LOGIC
 local callCounts, lastTime, blacklisted, selectedData = {}, {}, {}, nil
 local minimized = false
 
@@ -108,37 +100,31 @@ local function addLog(rem, args, isSelf)
     end
     
     local argTable = {}
-    for i=1, 10 do 
+    for i=1, 15 do -- Увеличил лимит аргументов для надежности
         if args[i] == nil and i > 1 then break end
         table.insert(argTable, formatVal(args[i]))
     end
     local argStr = table.concat(argTable, ", ")
+    local fullPath = getSafePath(rem)
     
     local target = (isSpam and not isSelf) and SpamFrame or Scroll
     local b = Instance.new("TextButton", target)
-    b.Size = UDim2.new(1, 0, 0, 26)
-    b.Text = (isSelf and "[S] " or "") .. name
-    -- Фикс ZIndex: кнопка должна быть выше контейнера
-    b.ZIndex = 12 
+    b.Size = UDim2.new(1, 0, 0, 26); b.Text = (isSelf and "[S] " or "") .. name
+    b.ZIndex = 15 -- Максимальный приоритет клика
     
-    -- Сохраняем дефолтный цвет для отмены выделения
     local defaultColor = isSelf and Color3.fromRGB(30, 60, 30) or (isSpam and Color3.fromRGB(70, 30, 30) or Color3.fromRGB(40, 40, 40))
-    b.BackgroundColor3 = defaultColor
-    b.TextColor3 = Color3.new(1, 1, 1)
+    b.BackgroundColor3 = defaultColor; b.TextColor3 = Color3.new(1, 1, 1)
     
     b.MouseButton1Click:Connect(function()
-        -- Отменяем старое выделение
-        if selectedData then 
-            selectedData.btn.BackgroundColor3 = selectedData.color
-        end
+        if selectedData then selectedData.btn.BackgroundColor3 = selectedData.color end
         
-        -- Выделяем всю кнопку фиолетовым
         selectedData = {btn = b, color = defaultColor}
         b.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
         
-        -- Обновляем данные
-        local fullPath = getSafePath(rem)
-        Details.Text = "Path: " .. fullPath .. "\n\nArgs: " .. argStr .. "\n\nScript: " .. fullPath .. ":FireServer(" .. argStr .. ")"
+        -- ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ ТЕКСТА
+        Details.Text = "" -- Сначала чистим
+        local text = "Path: " .. fullPath .. "\n\nArgs: " .. argStr .. "\n\nScript: " .. fullPath .. ":FireServer(" .. argStr .. ")"
+        Details.Text = text
     end)
 end
 
@@ -153,7 +139,10 @@ mt.__namecall = newcclosure(function(self, ...)
     if method == "FireServer" or method == "fireServer" then
         local args = {...}
         local isSelf = checkcaller()
-        task.spawn(function() pcall(addLog, self, args, isSelf) end) -- Добавил pcall для стабильности
+        task.spawn(function() 
+            local success, err = pcall(function() addLog(self, args, isSelf) end)
+            if not success then warn("[QS BUG]: " .. tostring(err)) end
+        end)
     end
     return old(self, ...)
 end)
