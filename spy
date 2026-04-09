@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v6.1 - UI REFRESH FIX ]] --
+-- [[ KRALLDEN SPY v6.2 - STRING MEMORY SYSTEM ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -18,7 +18,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0.6, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0.03, 0, 0, 0)
-Title.Text = "KRALLDEN SPY v6.1 REMASTERED"; Title.TextColor3 = Color3.new(1, 1, 1); Title.TextXAlignment = 0; Title.ZIndex = 1001
+Title.Text = "KRALLDEN SPY v6.2 ARCHIVE"; Title.TextColor3 = Color3.new(1, 1, 1); Title.TextXAlignment = 0; Title.ZIndex = 1001
 Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16
 
 local ControlBtn = Instance.new("TextButton", Header)
@@ -47,7 +47,6 @@ SpamFrame.BackgroundColor3 = Color3.fromRGB(25, 10, 10); SpamFrame.ZIndex = 10; 
 SpamFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y; SpamFrame.BorderSizePixel = 0
 Instance.new("UIListLayout", SpamFrame).SortOrder = Enum.SortOrder.LayoutOrder
 
--- DETAILS (WIDE)
 local Details = Instance.new("TextBox", Content)
 Details.Position = UDim2.new(0, 205, 0, 8); Details.Size = UDim2.new(0, 300, 0.58, 0)
 Details.BackgroundColor3 = Color3.fromRGB(10, 10, 12); Details.TextColor3 = Color3.new(0.9, 0.9, 0.9); Details.ZIndex = 20
@@ -64,14 +63,16 @@ CopyScript.Position = UDim2.new(0, 205, 0.83, 0); CopyScript.Size = UDim2.new(0,
 CopyScript.BackgroundColor3 = Color3.fromRGB(60, 60, 120); CopyScript.Text = "COPY SCRIPT"; CopyScript.ZIndex = 20
 CopyScript.TextColor3 = Color3.new(1,1,1); CopyScript.BorderSizePixel = 0; CopyScript.Font = Enum.Font.SourceSansBold
 
--- LOGIC
-local history, spamStats, pathHistory = {}, {}, {}
-local selectedBtn = nil
+-- UNIVERSAL MEMORY BASE (TEXT-ONLY)
+local textHistory = {} -- Хранит полные данные (Path + Args)
+local pathDatabase = {} -- Хранит только пути для CONTROL: ON
+local spamDatabase = {} -- Статистика для блокировки
 local controlMode = true
+local selectedBtn = nil
 
 local function getSafePath(obj)
     local p = ""
-    pcall(function()
+    local success = pcall(function()
         local t = obj
         while t and t ~= game do
             local n = tostring(t.Name)
@@ -79,89 +80,94 @@ local function getSafePath(obj)
             t = t.Parent
         end
     end)
-    return p ~= "" and "game." .. p:gsub("%.%[", "[") or "game.NilObject"
+    return success and "game." .. p:gsub("%.%[", "[") or "game.UnknownObject"
 end
 
 local function addLog(rem, args, isSelf)
-    local name = tostring(rem.Name)
-    local path = getSafePath(rem)
-    
+    -- ШАГ 1: Мгновенная конвертация в текст
+    local eventName = tostring(rem.Name)
+    local eventPath = getSafePath(rem)
     local argStrings = {}
     for _, v in pairs(args) do 
-        local success, res = pcall(function() 
-            return (typeof(v) == "Instance" and getSafePath(v) or (typeof(v) == "string" and '"'..v..'"' or tostring(v)))
+        pcall(function() 
+            table.insert(argStrings, (typeof(v) == "Instance" and getSafePath(v) or (typeof(v) == "string" and '"'..v..'"' or tostring(v))))
         end)
-        table.insert(argStrings, success and res or "ERR")
     end
-    local argStr = table.concat(argStrings, ", ")
-    local dataText = "Path: "..path.."\n\nArgs: "..argStr.."\n\nScript: "..path..":FireServer("..argStr..")"
-    local uniqueKey = name .. "|" .. argStr
+    local finalArgs = table.concat(argStrings, ", ")
+    local fullLogText = "Path: "..eventPath.."\n\nArgs: "..finalArgs.."\n\nScript: "..eventPath..":FireServer("..finalArgs..")"
+    
+    local uniqueID = eventPath .. "|" .. finalArgs -- Уникальный ключ Path + Args
+    local currentTime = tick()
 
-    if controlMode and pathHistory[path] and not isSelf then return end
+    -- ШАГ 2: Проверка CONTROL: ON
+    if controlMode and not isSelf then
+        if pathDatabase[eventPath] then return end -- Если этот ПУТЬ уже был, игнорируем
+    end
 
-    local function createButton(parent, color)
-        local b = Instance.new("TextButton", parent)
-        b.Size = UDim2.new(1, -6, 0, 30)
-        b.Text = (isSelf and "[S] " or "") .. name
-        b.BackgroundColor3 = color; b.TextColor3 = Color3.new(1,1,1); b.ZIndex = 100; b.BorderSizePixel = 0
-        b.Font = Enum.Font.SourceSans; b.TextSize = 14
+    -- ШАГ 3: Проверка Спама и Блокировки
+    if not controlMode and not isSelf then
+        if not spamDatabase[eventPath] then 
+            spamDatabase[eventPath] = {lastTime = 0, count = 0, isBlocked = false} 
+        end
+        local data = spamDatabase[eventPath]
         
-        b.MouseButton1Click:Connect(function()
-            if selectedBtn then 
-                selectedBtn.BackgroundColor3 = selectedBtn:GetAttribute("OrigCol") 
-            end
-            selectedBtn = b; b.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
-            Details.Text = dataText
-        end)
-        b:SetAttribute("OrigCol", color)
-        return b
-    end
+        if data.isBlocked then return end
+        
+        local isFast = (currentTime - data.lastTime < 0.8)
+        data.lastTime = currentTime
 
-    if not isSelf and not controlMode then
-        if not spamStats[path] then spamStats[path] = {count = 0, lastTime = 0, blocked = false} end
-        local stat = spamStats[path]
-        if stat.blocked then return end
-        local now = tick()
-        if (now - stat.lastTime < 0.8) then
-            stat.count = stat.count + 1
-            if stat.count > 15 then stat.blocked = true; return end
-            createButton(SpamFrame, Color3.fromRGB(60, 25, 25))
+        if isFast then
+            data.count = data.count + 1
+            if data.count > 15 then 
+                data.isBlocked = true
+                warn("[KRALLDEN]: Blocked spam from " .. eventName)
+                return 
+            end
+            
+            -- Кнопка в СПАМ лист
+            local sb = Instance.new("TextButton", SpamFrame)
+            sb.Size = UDim2.new(1, -6, 0, 28); sb.Text = eventName; sb.ZIndex = 100
+            sb.BackgroundColor3 = Color3.fromRGB(60, 25, 25); sb.TextColor3 = Color3.new(1,1,1); sb.BorderSizePixel = 0
+            sb.MouseButton1Click:Connect(function() Details.Text = fullLogText end)
             return
         end
-        stat.lastTime = now
     end
 
-    if history[uniqueKey] and not isSelf then return end
-    history[uniqueKey] = true; pathHistory[path] = true
-    createButton(Scroll, isSelf and Color3.fromRGB(35, 70, 35) or Color3.fromRGB(40, 40, 45))
+    -- ШАГ 4: Основное окно (Если ивент новый или медленный)
+    if textHistory[uniqueID] and not isSelf then return end
+    
+    textHistory[uniqueID] = true
+    pathDatabase[eventPath] = true
+
+    local b = Instance.new("TextButton", Scroll)
+    b.Size = UDim2.new(1, -6, 0, 30); b.Text = (isSelf and "[S] " or "") .. eventName; b.ZIndex = 100
+    b.BackgroundColor3 = isSelf and Color3.fromRGB(35, 70, 35) or Color3.fromRGB(40, 40, 45)
+    b.TextColor3 = Color3.new(1,1,1); b.BorderSizePixel = 0
+    
+    b.MouseButton1Click:Connect(function()
+        if selectedBtn then selectedBtn.BackgroundColor3 = selectedBtn:GetAttribute("OldCol") end
+        b:SetAttribute("OldCol", b.BackgroundColor3)
+        selectedBtn = b; b.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
+        Details.Text = fullLogText
+    end)
 end
 
+-- CONTROLS
 ControlBtn.MouseButton1Click:Connect(function()
     controlMode = not controlMode
     ControlBtn.Text = "CONTROL: " .. (controlMode and "ON" or "OFF")
     ControlBtn.BackgroundColor3 = controlMode and Color3.fromRGB(150, 50, 255) or Color3.fromRGB(80, 80, 85)
+    -- Полная очистка памяти при смене режима
+    textHistory, pathDatabase, spamDatabase = {}, {}, {}
     for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     for _, v in pairs(SpamFrame:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-    history, spamStats, pathHistory = {}, {}, {}
 end)
 
 MinBtn.MouseButton1Click:Connect(function()
     Content.Visible = not Content.Visible
     ControlBtn.Visible = Content.Visible
-    local isVisible = Content.Visible
-    Main:TweenSize(isVisible and UDim2.new(0, 660, 0, 420) or UDim2.new(0, 240, 0, 35), "Out", "Quad", 0.1, true)
-    MinBtn.Text = isVisible and "_" or "+"
-    
-    -- ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ КНОПОК ПРИ РАЗВОРАЧИВАНИИ
-    if isVisible then
-        task.wait(0.12)
-        for _, btn in pairs(Scroll:GetChildren()) do
-            if btn:IsA("TextButton") then btn.Visible = false; btn.Visible = true end
-        end
-        for _, btn in pairs(SpamFrame:GetChildren()) do
-            if btn:IsA("TextButton") then btn.Visible = false; btn.Visible = true end
-        end
-    end
+    Main:TweenSize(Content.Visible and UDim2.new(0, 660, 0, 420) or UDim2.new(0, 240, 0, 35), "Out", "Quad", 0.1, true)
+    MinBtn.Text = Content.Visible and "_" or "+"
 end)
 
 CopyArgs.MouseButton1Click:Connect(function() setclipboard(Details.Text:match("Args: (.*)\n\nScript") or "") end)
@@ -169,12 +175,11 @@ CopyScript.MouseButton1Click:Connect(function() setclipboard(Details.Text:match(
 
 local mt = getrawmetatable(game); local old = mt.__namecall; setreadonly(mt, false)
 mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    if method == "FireServer" or method == "fireServer" then
+    local m = getnamecallmethod()
+    if m == "FireServer" or m == "fireServer" then
         local a = {...}; local s = checkcaller()
         task.spawn(function() pcall(addLog, self, a, s) end)
     end
     return old(self, ...)
 end)
 setreadonly(mt, true)
-warn("KRALLDEN v6.1 FIX LOADED")
