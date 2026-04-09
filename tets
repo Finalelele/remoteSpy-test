@@ -11,40 +11,49 @@ Main.Size = UDim2.new(0, 600, 0, 400)
 Main.Position = UDim2.new(0.5, -300, 0.5, -200)
 Main.Active = true; Main.Draggable = true
 
--- 1. ЗАГОЛОВОК (Исправлено)
+-- ЗАГОЛОВОК
 local Header = Instance.new("Frame", Main)
 Header.Size = UDim2.new(1, 0, 0, 30)
 Header.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(1, 0, 1, 0); Title.BackgroundTransparency = 1
-Title.Text = "QUANTUM SPY v3.9 (STABLE)"; Title.TextColor3 = Color3.new(1, 1, 1)
+Title.Text = "QUANTUM SPY v4.0 (FULL)"; Title.TextColor3 = Color3.new(1, 1, 1)
 
+-- ОСНОВНОЙ СПИСОК
 local Scroll = Instance.new("ScrollingFrame", Main)
 Scroll.Position = UDim2.new(0, 5, 0, 35); Scroll.Size = UDim2.new(0, 220, 1, -40)
 Scroll.CanvasSize = UDim2.new(0, 0, 100, 0)
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
+-- СПАМ СПИСОК (Красная зона)
+local SpamFrame = Instance.new("ScrollingFrame", Main)
+SpamFrame.Size = UDim2.new(0, 150, 1, -40)
+SpamFrame.Position = UDim2.new(1, 5, 0, 35)
+SpamFrame.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+SpamFrame.CanvasSize = UDim2.new(0, 0, 10, 0)
+Instance.new("UIListLayout", SpamFrame).SortOrder = Enum.SortOrder.LayoutOrder
+
 local Details = Instance.new("TextBox", Main)
 Details.Position = UDim2.new(0, 230, 0, 35); Details.Size = UDim2.new(1, -235, 0.5, 0)
 Details.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Details.TextColor3 = Color3.new(0.8, 0.8, 0.8)
 Details.MultiLine = true; Details.TextXAlignment = 0; Details.TextYAlignment = 0
-Details.Text = "Waiting for events..."; Details.ClearTextOnFocus = false; Details.TextWrapped = true
+Details.Text = "Waiting..."; Details.ClearTextOnFocus = false; Details.TextWrapped = true
 
 local CopyArgs = Instance.new("TextButton", Main)
-CopyArgs.Position = UDim2.new(0, 230, 0.65, 0); CopyArgs.Size = UDim2.new(1, -235, 0.15, 0)
+CopyArgs.Position = UDim2.new(0, 230, 0.62, 0); CopyArgs.Size = UDim2.new(1, -235, 0.14, 0)
 CopyArgs.BackgroundColor3 = Color3.fromRGB(50, 100, 50); CopyArgs.Text = "COPY ARGS"; CopyArgs.TextColor3 = Color3.new(1, 1, 1)
 
 local CopyScript = Instance.new("TextButton", Main)
-CopyScript.Position = UDim2.new(0, 230, 0.82, 0); CopyScript.Size = UDim2.new(1, -235, 0.15, 0)
+CopyScript.Position = UDim2.new(0, 230, 0.80, 0); CopyScript.Size = UDim2.new(1, -235, 0.14, 0)
 CopyScript.BackgroundColor3 = Color3.fromRGB(60, 60, 120); CopyScript.Text = "COPY SCRIPT"; CopyScript.TextColor3 = Color3.new(1, 1, 1)
 
--- ЛОГИКА (БЕЗ WARN И С ФИЛЬТРОМ RELIABLE)
-local loggedData = {}
+-- ЛОГИКА
+local callCounts, lastTime, loggedKeys, blacklisted = {}, {}, {}, {}
 local curArgs, curScript = "", ""
 
 local function getSafePath(obj)
     local s, res = pcall(function() return obj:GetFullName() end)
-    return s and res or "Unknown_Path"
+    return s and res or "Access_Denied"
 end
 
 local function formatVal(v)
@@ -55,23 +64,38 @@ local function formatVal(v)
     else return tostring(v) end
 end
 
-local function addLog(rem, args)
-    pcall(function()
+local function addLog(rem, args, isSelf)
+    local success, err = pcall(function()
         local name = rem.Name
         local argTable = {}
         for _, v in pairs(args) do table.insert(argTable, formatVal(v)) end
         local argStr = table.concat(argTable, ", ")
+        local key = name .. "|" .. argStr
         
-        -- 2. ФИЛЬТР RELIABLE (Исправлено)
-        local key = name .. argStr
-        if loggedData[key] then return end
-        loggedData[key] = true
-
-        local b = Instance.new("TextButton", Scroll)
-        b.Size = UDim2.new(1, 0, 0, 25); b.Text = name
-        b.BackgroundColor3 = Color3.fromRGB(45, 45, 45); b.TextColor3 = Color3.new(1, 1, 1)
+        -- Проверка на бан
+        if blacklisted[name] and not isSelf then return end
         
-        -- 3. ЗАЩИТА ОТ ЗАВИСАНИЙ (Исправлено)
+        local now = tick()
+        local isSpam = lastTime[name] and (now - lastTime[name] < 0.5)
+        
+        if not isSelf then
+            callCounts[name] = (callCounts[name] or 0) + 1
+            lastTime[name] = now
+            if callCounts[name] > 15 then blacklisted[name] = true; return end
+            if loggedKeys[key] then return end
+        end
+        
+        loggedKeys[key] = true
+        
+        -- Куда пихаем кнопку
+        local target = (isSpam and not isSelf) and SpamFrame or Scroll
+        
+        local b = Instance.new("TextButton", target)
+        b.Size = UDim2.new(1, 0, 0, 25)
+        b.Text = (isSelf and "[S] " or "") .. name
+        b.BackgroundColor3 = isSelf and Color3.fromRGB(40, 70, 40) or (isSpam and Color3.fromRGB(80, 40, 40) or Color3.fromRGB(45, 45, 45))
+        b.TextColor3 = Color3.new(1, 1, 1)
+        
         b.MouseButton1Click:Connect(function()
             pcall(function()
                 local path = getSafePath(rem)
@@ -81,6 +105,7 @@ local function addLog(rem, args)
             end)
         end)
     end)
+    if not success then warn("[QS BUG]: " .. tostring(err)) end
 end
 
 CopyArgs.MouseButton1Click:Connect(function() setclipboard(curArgs) end)
@@ -94,7 +119,8 @@ mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     if method == "FireServer" or method == "fireServer" then
         local args = {...}
-        task.spawn(function() addLog(self, args) end)
+        local isSelf = checkcaller()
+        task.spawn(function() addLog(self, args, isSelf) end)
     end
     return old(self, ...)
 end)
