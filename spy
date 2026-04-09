@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v6.7 - FIX & OPTIMIZED ]] --
+-- [[ KRALLDEN SPY v6.8 - UI & PATH FILTER FIX ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -13,11 +13,12 @@ Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20); Main.Size = UDim2.new(0, 660
 Main.Position = UDim2.new(0.5, -330, 0.5, -210); Main.Active = true; Main.Draggable = true
 
 local MainMemory = {} 
-local AntiSpamMap = {} -- Карта для проверки дубликатов
+local PathFilter = {} 
 local controlMode = true
 local currentSelectionID = nil 
+local lastCount = 0
 
--- DEEP PARSER (CODE-READY)
+-- ПАРСЕР ТАБЛИЦ (ДЛЯ ИНЖЕКТОРА)
 local function parseTable(t, depth)
     depth = depth or 0
     if type(t) ~= "table" or depth > 4 then 
@@ -37,26 +38,27 @@ local function parseTable(t, depth)
     return result .. "}"
 end
 
--- UI
+-- UI ЭЛЕМЕНТЫ
 local Header = Instance.new("Frame", Main)
 Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Header.ZIndex = 1000
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0.6, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0.03, 0, 0, 0)
-Title.Text = "KRALLDEN SPY v6.7 PRO"; Title.TextColor3 = Color3.new(1, 1, 1); Title.TextXAlignment = 0; Title.ZIndex = 1001; Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16
+Title.Text = "KRALLDEN SPY v6.8"; Title.TextColor3 = Color3.new(1, 1, 1); Title.TextXAlignment = 0; Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16
 
 local ControlBtn = Instance.new("TextButton", Header)
-ControlBtn.Size = UDim2.new(0, 100, 0, 24); ControlBtn.Position = UDim2.new(1, -155, 0.5, -12); ControlBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255); ControlBtn.Text = "CONTROL: ON"; ControlBtn.TextColor3 = Color3.new(1,1,1); ControlBtn.Font = Enum.Font.SourceSansBold; ControlBtn.ZIndex = 1002
+ControlBtn.Size = UDim2.new(0, 100, 0, 24); ControlBtn.Position = UDim2.new(1, -155, 0.5, -12); ControlBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255); ControlBtn.Text = "CONTROL: ON"; ControlBtn.TextColor3 = Color3.new(1,1,1); ControlBtn.Font = Enum.Font.SourceSansBold
 
 local MinBtn = Instance.new("TextButton", Header)
-MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 1002
+MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22
 
 local Content = Instance.new("Frame", Main)
 Content.Size = UDim2.new(1, 0, 1, -35); Content.Position = UDim2.new(0, 0, 0, 35); Content.BackgroundTransparency = 1
 
 local Scroll = Instance.new("ScrollingFrame", Content)
 Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 190, 1, -16); Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Scroll.BorderSizePixel = 0; Scroll.ZIndex = 5
-Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
+local ListLayout = Instance.new("UIListLayout", Scroll)
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local Details = Instance.new("TextBox", Content)
 Details.Position = UDim2.new(0, 205, 0, 8); Details.Size = UDim2.new(0, 445, 0.58, 0); Details.BackgroundColor3 = Color3.fromRGB(10, 10, 12); Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = false; Details.BorderSizePixel = 0; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.Font = Enum.Font.Code; Details.TextSize = 14
@@ -67,32 +69,44 @@ CopyArgs.Position = UDim2.new(0, 205, 0.68, 0); CopyArgs.Size = UDim2.new(0, 445
 local CopyScript = Instance.new("TextButton", Content)
 CopyScript.Position = UDim2.new(0, 205, 0.83, 0); CopyScript.Size = UDim2.new(0, 445, 0.13, 0); CopyScript.BackgroundColor3 = Color3.fromRGB(60, 60, 120); CopyScript.Text = "COPY SCRIPT"; CopyScript.TextColor3 = Color3.new(1,1,1); CopyScript.Font = Enum.Font.SourceSansBold; CopyScript.TextSize = 18
 
--- REBUILD ENGINE (With "Empty Memory" Protection)
-local function CreateVisualButton(data)
-    local b = Instance.new("TextButton", Scroll)
-    b.Size = UDim2.new(1, -6, 0, 30); b.BorderSizePixel = 0; b.Text = (data.isSelf and "[S] " or "") .. data.name
-    local uniqueID = data.path .. data.args
-    b.BackgroundColor3 = (currentSelectionID == uniqueID) and Color3.fromRGB(150, 50, 255) or (data.isSelf and Color3.fromRGB(35, 70, 35) or Color3.fromRGB(40, 40, 45))
-    b.TextColor3 = Color3.new(1,1,1)
-    b.MouseButton1Click:Connect(function()
-        currentSelectionID = uniqueID
-        for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v.BackgroundColor3 = v:GetAttribute("IsSelf") and Color3.fromRGB(35, 70, 35) or Color3.fromRGB(40, 40, 45) end end
-        b.BackgroundColor3 = Color3.fromRGB(150, 50, 255); Details.Text = data.fullText
-    end)
-    b:SetAttribute("IsSelf", data.isSelf)
-end
-
+-- ЛОГИКА ОБНОВЛЕНИЯ СПИСКА
 local function RebuildGUI()
-    if not Content.Visible or #MainMemory == 0 then return end -- Не обновлять, если пусто
-    for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-    for _, data in ipairs(MainMemory) do CreateVisualButton(data) end
+    if not Content.Visible or #MainMemory == lastCount then return end
+    lastCount = #MainMemory
+    
+    -- Полная очистка перед перерисовкой
+    for _, child in pairs(Scroll:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+
+    for i, data in ipairs(MainMemory) do
+        local b = Instance.new("TextButton", Scroll)
+        b.Size = UDim2.new(1, -6, 0, 30); b.BorderSizePixel = 0
+        b.Text = (data.isSelf and "[S] " or "") .. data.name
+        b.LayoutOrder = i
+        
+        local uniqueID = data.path .. data.args
+        b.BackgroundColor3 = (currentSelectionID == uniqueID) and Color3.fromRGB(150, 50, 255) or (data.isSelf and Color3.fromRGB(35, 70, 35) or Color3.fromRGB(40, 40, 45))
+        b.TextColor3 = Color3.new(1,1,1)
+        
+        b.MouseButton1Click:Connect(function()
+            currentSelectionID = uniqueID
+            Details.Text = data.fullText
+            for _, v in pairs(Scroll:GetChildren()) do
+                if v:IsA("TextButton") then
+                    local isS = v.Text:find("%[S%]")
+                    v.BackgroundColor3 = (v == b) and Color3.fromRGB(150, 50, 255) or (isS and Color3.fromRGB(35, 70, 35) or Color3.fromRGB(40, 40, 45))
+                end
+            end
+        end)
+    end
 end
 
 task.spawn(function()
-    while task.wait(1) do RebuildGUI() end
+    while task.wait(0.5) do RebuildGUI() end
 end)
 
--- CORE LOGIC
+-- ПЕРЕХВАТ
 local function getSafePath(obj)
     local p = ""
     pcall(function()
@@ -106,35 +120,38 @@ end
 
 local function addLog(rem, args, isSelf)
     local eventPath = getSafePath(rem)
-    local argStrings = {}
-    for _, v in pairs(args) do pcall(function() table.insert(argStrings, (typeof(v) == "Instance" and getSafePath(v) or parseTable(v))) end) end
-    local finalArgs = table.concat(argStrings, ", ")
     
-    -- Умный анти-спам: Путь + Хэш аргументов
-    local uniqueSignature = eventPath .. finalArgs
+    -- СТРОГАЯ ФИЛЬТРАЦИЯ ПО ПУТИ (как ты просил)
     if controlMode and not isSelf then
-        if AntiSpamMap[uniqueSignature] then return end -- Блок только идентичных вызовов
+        if PathFilter[eventPath] then return end
     end
 
+    local argStrings = {}
+    for _, v in pairs(args) do 
+        pcall(function() table.insert(argStrings, (typeof(v) == "Instance" and getSafePath(v) or parseTable(v))) end) 
+    end
+    local finalArgs = table.concat(argStrings, ", ")
+    
     local fullText = "Path: "..eventPath.."\n\nArgs: "..finalArgs.."\n\nScript: "..eventPath..":FireServer("..finalArgs..")"
+    
     table.insert(MainMemory, {name = tostring(rem.Name), path = eventPath, args = finalArgs, fullText = fullText, isSelf = isSelf})
-    AntiSpamMap[uniqueSignature] = true
+    PathFilter[eventPath] = true
 end
 
--- BUTTONS
+-- КНОПКИ УПРАВЛЕНИЯ
 MinBtn.MouseButton1Click:Connect(function()
     Content.Visible = not Content.Visible; ControlBtn.Visible = Content.Visible
     Main:TweenSize(Content.Visible and UDim2.new(0, 660, 0, 420) or UDim2.new(0, 240, 0, 35), "Out", "Quad", 0.1, true)
     MinBtn.Text = Content.Visible and "_" or "+"
-    if Content.Visible then RebuildGUI() end
 end)
 
 ControlBtn.MouseButton1Click:Connect(function()
     controlMode = not controlMode
     ControlBtn.Text = "CONTROL: " .. (controlMode and "ON" or "OFF")
     ControlBtn.BackgroundColor3 = controlMode and Color3.fromRGB(150, 50, 255) or Color3.fromRGB(80, 80, 85)
-    MainMemory, AntiSpamMap = {}, {}
-    Details.Text = ""; currentSelectionID = nil; RebuildGUI()
+    MainMemory, PathFilter, lastCount = {}, {}, 0
+    Details.Text = ""; currentSelectionID = nil
+    for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
 end)
 
 CopyArgs.MouseButton1Click:Connect(function() setclipboard(Details.Text:match("Args: (.*)\n\nScript") or "") end)
