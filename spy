@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v6.0 - UI REMASTERED ]] --
+-- [[ KRALLDEN SPY v6.1 - UI REFRESH FIX ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -9,59 +9,59 @@ local ScreenGui = Instance.new("ScreenGui", playerGui)
 ScreenGui.Name = "KralldenSpyUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 2147483647
 
 local Main = Instance.new("Frame", ScreenGui)
-Main.BackgroundColor3 = Color3.fromRGB(18, 18, 22); Main.Size = UDim2.new(0, 650, 0, 420)
-Main.Position = UDim2.new(0.5, -325, 0.5, -210); Main.Active = true; Main.Draggable = true
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20); Main.Size = UDim2.new(0, 660, 0, 420)
+Main.Position = UDim2.new(0.5, -330, 0.5, -210); Main.Active = true; Main.Draggable = true
 
 -- HEADER
 local Header = Instance.new("Frame", Main)
-Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(30, 30, 35); Header.ZIndex = 500
+Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Header.ZIndex = 1000
 
 local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(0.5, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0.03, 0, 0, 0)
-Title.Text = "KRALLDEN SPY v6.0 UI REMASTERED"; Title.TextColor3 = Color3.new(1, 1, 1); Title.TextXAlignment = 0; Title.ZIndex = 501
+Title.Size = UDim2.new(0.6, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0.03, 0, 0, 0)
+Title.Text = "KRALLDEN SPY v6.1 REMASTERED"; Title.TextColor3 = Color3.new(1, 1, 1); Title.TextXAlignment = 0; Title.ZIndex = 1001
 Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16
 
 local ControlBtn = Instance.new("TextButton", Header)
-ControlBtn.Size = UDim2.new(0, 110, 0, 24); ControlBtn.Position = UDim2.new(1, -165, 0.5, -12)
-ControlBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255); ControlBtn.Text = "CONTROL: ON"; ControlBtn.ZIndex = 502
+ControlBtn.Size = UDim2.new(0, 100, 0, 24); ControlBtn.Position = UDim2.new(1, -155, 0.5, -12)
+ControlBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255); ControlBtn.Text = "CONTROL: ON"; ControlBtn.ZIndex = 1002
 ControlBtn.TextColor3 = Color3.new(1,1,1); ControlBtn.Font = Enum.Font.SourceSansBold
 
 local MinBtn = Instance.new("TextButton", Header)
-MinBtn.Size = UDim2.new(0, 40, 0, 35); MinBtn.Position = UDim2.new(1, -40, 0, 0)
-MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.ZIndex = 502
-MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.Font = Enum.Font.SourceSansBold; MinBtn.TextSize = 20
+MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0)
+MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.ZIndex = 1002
+MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.Font = Enum.Font.SourceSansBold; MinBtn.TextSize = 22
 
 -- CONTENT
 local Content = Instance.new("Frame", Main)
 Content.Size = UDim2.new(1, 0, 1, -35); Content.Position = UDim2.new(0, 0, 0, 35); Content.BackgroundTransparency = 1
 
 local Scroll = Instance.new("ScrollingFrame", Content)
-Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 200, 1, -16)
-Scroll.BackgroundColor3 = Color3.fromRGB(25, 25, 28); Scroll.ZIndex = 10; Scroll.ScrollBarThickness = 3
+Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 190, 1, -16)
+Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.ZIndex = 10; Scroll.ScrollBarThickness = 3
 Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Scroll.BorderSizePixel = 0
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
 local SpamFrame = Instance.new("ScrollingFrame", Content)
-SpamFrame.Size = UDim2.new(0, 150, 1, -16); SpamFrame.Position = UDim2.new(1, -158, 0, 8)
-SpamFrame.BackgroundColor3 = Color3.fromRGB(30, 12, 12); SpamFrame.ZIndex = 10; SpamFrame.ScrollBarThickness = 2
+SpamFrame.Size = UDim2.new(0, 140, 1, -16); SpamFrame.Position = UDim2.new(1, -148, 0, 8)
+SpamFrame.BackgroundColor3 = Color3.fromRGB(25, 10, 10); SpamFrame.ZIndex = 10; SpamFrame.ScrollBarThickness = 2
 SpamFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y; SpamFrame.BorderSizePixel = 0
 Instance.new("UIListLayout", SpamFrame).SortOrder = Enum.SortOrder.LayoutOrder
 
--- DETAILS (РАСШИРЕНО)
+-- DETAILS (WIDE)
 local Details = Instance.new("TextBox", Content)
-Details.Position = UDim2.new(0, 215, 0, 8); Details.Size = UDim2.new(0, 270, 0.58, 0)
-Details.BackgroundColor3 = Color3.fromRGB(12, 12, 15); Details.TextColor3 = Color3.new(0.9, 0.9, 0.9); Details.ZIndex = 20
+Details.Position = UDim2.new(0, 205, 0, 8); Details.Size = UDim2.new(0, 300, 0.58, 0)
+Details.BackgroundColor3 = Color3.fromRGB(10, 10, 12); Details.TextColor3 = Color3.new(0.9, 0.9, 0.9); Details.ZIndex = 20
 Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = false; Details.TextXAlignment = 0; Details.TextYAlignment = 0
 Details.BorderSizePixel = 0; Details.TextSize = 14; Details.Font = Enum.Font.Code
 
 local CopyArgs = Instance.new("TextButton", Content)
-CopyArgs.Position = UDim2.new(0, 215, 0.68, 0); CopyArgs.Size = UDim2.new(0, 270, 0.13, 0)
-CopyArgs.BackgroundColor3 = Color3.fromRGB(50, 100, 50); CopyArgs.Text = "COPY ARGS"; CopyArgs.ZIndex = 20
+CopyArgs.Position = UDim2.new(0, 205, 0.68, 0); CopyArgs.Size = UDim2.new(0, 300, 0.13, 0)
+CopyArgs.BackgroundColor3 = Color3.fromRGB(45, 90, 45); CopyArgs.Text = "COPY ARGS"; CopyArgs.ZIndex = 20
 CopyArgs.TextColor3 = Color3.new(1,1,1); CopyArgs.BorderSizePixel = 0; CopyArgs.Font = Enum.Font.SourceSansBold
 
 local CopyScript = Instance.new("TextButton", Content)
-CopyScript.Position = UDim2.new(0, 215, 0.83, 0); CopyScript.Size = UDim2.new(0, 270, 0.13, 0)
-CopyScript.BackgroundColor3 = Color3.fromRGB(70, 70, 140); CopyScript.Text = "COPY SCRIPT"; CopyScript.ZIndex = 20
+CopyScript.Position = UDim2.new(0, 205, 0.83, 0); CopyScript.Size = UDim2.new(0, 300, 0.13, 0)
+CopyScript.BackgroundColor3 = Color3.fromRGB(60, 60, 120); CopyScript.Text = "COPY SCRIPT"; CopyScript.ZIndex = 20
 CopyScript.TextColor3 = Color3.new(1,1,1); CopyScript.BorderSizePixel = 0; CopyScript.Font = Enum.Font.SourceSansBold
 
 -- LOGIC
@@ -124,7 +124,7 @@ local function addLog(rem, args, isSelf)
         local now = tick()
         if (now - stat.lastTime < 0.8) then
             stat.count = stat.count + 1
-            if stat.count > 12 then stat.blocked = true; return end
+            if stat.count > 15 then stat.blocked = true; return end
             createButton(SpamFrame, Color3.fromRGB(60, 25, 25))
             return
         end
@@ -148,8 +148,20 @@ end)
 MinBtn.MouseButton1Click:Connect(function()
     Content.Visible = not Content.Visible
     ControlBtn.Visible = Content.Visible
-    Main:TweenSize(Content.Visible and UDim2.new(0, 650, 0, 420) or UDim2.new(0, 220, 0, 35), "Out", "Quad", 0.15, true)
-    MinBtn.Text = Content.Visible and "_" or "+"
+    local isVisible = Content.Visible
+    Main:TweenSize(isVisible and UDim2.new(0, 660, 0, 420) or UDim2.new(0, 240, 0, 35), "Out", "Quad", 0.1, true)
+    MinBtn.Text = isVisible and "_" or "+"
+    
+    -- ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ КНОПОК ПРИ РАЗВОРАЧИВАНИИ
+    if isVisible then
+        task.wait(0.12)
+        for _, btn in pairs(Scroll:GetChildren()) do
+            if btn:IsA("TextButton") then btn.Visible = false; btn.Visible = true end
+        end
+        for _, btn in pairs(SpamFrame:GetChildren()) do
+            if btn:IsA("TextButton") then btn.Visible = false; btn.Visible = true end
+        end
+    end
 end)
 
 CopyArgs.MouseButton1Click:Connect(function() setclipboard(Details.Text:match("Args: (.*)\n\nScript") or "") end)
@@ -165,4 +177,4 @@ mt.__namecall = newcclosure(function(self, ...)
     return old(self, ...)
 end)
 setreadonly(mt, true)
-warn("KRALLDEN v6.0 UI REMASTERED LOADED")
+warn("KRALLDEN v6.1 FIX LOADED")
