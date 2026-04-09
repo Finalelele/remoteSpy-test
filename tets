@@ -1,23 +1,28 @@
--- QuantumSpy v3.4 (Smart Anti-Spam & Auto-Filter)
+-- QuantumSpy v3.5 (Multi-List & Self-Trace)
 local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-
-if playerGui:FindFirstChild("QuantumSpyUI") then 
-    playerGui.QuantumSpyUI:Destroy() 
-end
+if playerGui:FindFirstChild("QuantumSpyUI") then playerGui.QuantumSpyUI:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui", playerGui)
 ScreenGui.Name = "QuantumSpyUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.DisplayOrder = 999999999 
+ScreenGui.DisplayOrder = 999999999
 
 local Main = Instance.new("Frame", ScreenGui)
 Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Main.Size = UDim2.new(0, 600, 0, 340)
-Main.Position = UDim2.new(0.5, -250, 0.5, -170)
-Main.Active = true; Main.Draggable = true 
+Main.Position = UDim2.new(0.5, -300, 0.5, -170)
+Main.Active = true; Main.Draggable = true
+
+-- Боковой список для спама (та самая "красная зона")
+local SpamFrame = Instance.new("ScrollingFrame", Main)
+SpamFrame.Name = "SpamList"
+SpamFrame.Size = UDim2.new(0, 150, 1, -45)
+SpamFrame.Position = UDim2.new(1, 5, 0, 40)
+SpamFrame.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
+SpamFrame.CanvasSize = UDim2.new(0,0,10,0)
+Instance.new("UIListLayout", SpamFrame).SortOrder = Enum.SortOrder.LayoutOrder
 
 local Title = Instance.new("TextLabel", Main)
-Title.Size = UDim2.new(1, 0, 0, 35); Title.Text = "QUANTUM SPY v3.4 (Auto-Filter)"; Title.TextColor3 = Color3.new(1, 1, 1)
+Title.Size = UDim2.new(1, 0, 0, 35); Title.Text = "QUANTUM SPY v3.5 (DEBUG)"; Title.TextColor3 = Color3.new(1, 1, 1)
 Title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 
 local Scroll = Instance.new("ScrollingFrame", Main)
@@ -29,70 +34,77 @@ local Details = Instance.new("TextBox", Main)
 Details.Position = UDim2.new(0, 230, 0, 40); Details.Size = UDim2.new(1, -235, 0.6, 0)
 Details.BackgroundColor3 = Color3.fromRGB(20, 20, 20); Details.TextColor3 = Color3.new(0.9, 0.9, 0.9)
 Details.MultiLine = true; Details.TextXAlignment = 0; Details.TextYAlignment = 0
-Details.Text = "Ожидание..."; Details.ClearTextOnFocus = false; Details.TextWrapped = true
-
-local CopyArgs = Instance.new("TextButton", Main)
-CopyArgs.Position = UDim2.new(0, 230, 0.65, 5); CopyArgs.Size = UDim2.new(1, -235, 0.1, 0)
-CopyArgs.BackgroundColor3 = Color3.fromRGB(60, 120, 60); CopyArgs.Text = "COPY ARGS"; CopyArgs.TextColor3 = Color3.new(1, 1, 1)
+Details.Text = "Logs..."; Details.ClearTextOnFocus = false; Details.TextWrapped = true
 
 local CopyScript = Instance.new("TextButton", Main)
 CopyScript.Position = UDim2.new(0, 230, 0.77, 5); CopyScript.Size = UDim2.new(1, -235, 0.1, 0)
-CopyScript.BackgroundColor3 = Color3.fromRGB(70, 70, 150); CopyScript.Text = "COPY SCRIPT"; CopyScript.TextColor3 = Color3.new(1, 1, 1)
+CopyScript.BackgroundColor3 = Color3.fromRGB(70, 70, 150); CopyScript.Text = "COPY FULL SCRIPT"; CopyScript.TextColor3 = Color3.new(1, 1, 1)
 
--- ЛОГИКА ФИЛЬТРАЦИИ
-local loggedKeys = {}      -- Для уникальных "Имя+Args"
-local callCounts = {}      -- Счетчик вызовов по имени
-local isBlacklisted = {}   -- Список забаненных имен
+-- ЛОГИКА
+local callCounts = {}
+local lastTime = {}
+local loggedKeys = {}
+local blacklisted = {}
 local currentScript = ""
 
-local function formatArgs(args)
-    local parts = {}
-    for i, v in ipairs(args) do
+local function safeFormat(v)
+    local s, res = pcall(function()
         local t = typeof(v)
-        if t == "string" then table.insert(parts, '"'..v..'"')
-        elseif t == "Instance" then table.insert(parts, v:GetFullName())
-        else table.insert(parts, tostring(v)) end
-    end
-    return table.concat(parts, ", ")
+        if t == "string" then return '"'..v..'"'
+        elseif t == "Instance" then return v:GetFullName()
+        elseif t == "table" then return "{table}"
+        else return tostring(v) end
+    end)
+    return s and res or "???"
 end
 
 local function addLog(rem, args)
+    if not rem or not rem.Name then return end
     local name = rem.Name
-    local argStr = formatArgs(args)
+    if blacklisted[name] then return end
+
+    local argTable = {}
+    for _, v in pairs(args) do table.insert(argTable, safeFormat(v)) end
+    local argStr = table.concat(argTable, ", ")
     local key = name .. "|" .. argStr
-
-    -- 1. Если ивент в черном списке — полностью игнорируем
-    if isBlacklisted[name] then return end
-
-    -- 2. Считаем количество вызовов этого Remote
-    callCounts[name] = (callCounts[name] or 0) + 1
     
-    -- 3. Если вызван больше 10 раз — в бан (чтобы не спамил Replicator)
+    local now = tick()
+    local isSpam = lastTime[name] and (now - lastTime[name] < 0.5)
+    
+    callCounts[name] = (callCounts[name] or 0) + 1
+    lastTime[name] = now
+
+    -- 1. Если это 11-й вызов — в бан навсегда
     if callCounts[name] > 10 then
-        isBlacklisted[name] = true
-        warn("[QuantumSpy] Remote '" .. name .. "' заблокирован из-за спама (>10 вызовов)")
+        blacklisted[name] = true
         return
     end
 
-    -- 4. Если такие аргументы уже были — скипаем
+    -- 2. Если аргументы те же — скипаем (чтобы не дублировать кнопки)
     if loggedKeys[key] then return end
     loggedKeys[key] = true
 
-    local b = Instance.new("TextButton", Scroll)
-    b.Size = UDim2.new(1, 0, 0, 28); b.Text = name; b.BackgroundColor3 = Color3.fromRGB(50, 50, 50); b.TextColor3 = Color3.new(1, 1, 1)
+    -- 3. Выбираем список (обычный или боковой для спама)
+    local targetScroll = isSpam and SpamFrame or Scroll
+    
+    local b = Instance.new("TextButton", targetScroll)
+    b.Size = UDim2.new(1, 0, 0, 25)
+    b.Text = name .. (isSpam and " [SPAM]" or "")
+    b.BackgroundColor3 = isSpam and Color3.fromRGB(80, 40, 40) or Color3.fromRGB(50, 50, 50)
+    b.TextColor3 = Color3.new(1, 1, 1)
     
     b.MouseButton1Click:Connect(function()
-        local path = rem:GetFullName()
-        currentScript = path .. ":FireServer(" .. argStr .. ")"
-        Details.Text = "Path: "..path.."\n\nArgs:\n"..argStr.."\n\nFull Script:\n"..currentScript
+        pcall(function()
+            local path = rem:GetFullName()
+            currentScript = "game." .. path .. ":FireServer(" .. argStr .. ")"
+            Details.Text = "Path: " .. path .. "\n\nArgs: " .. argStr .. "\n\nFull:\n" .. currentScript
+        end)
     end)
 end
 
--- КНОПКИ
-CopyArgs.MouseButton1Click:Connect(function() setclipboard(Details.Text) end)
 CopyScript.MouseButton1Click:Connect(function() setclipboard(currentScript) end)
 
--- ХУК
+-- ХУК (Убрали проверку checkcaller)
 local mt = getrawmetatable(game)
 local old = mt.__namecall
 setreadonly(mt, false)
@@ -100,8 +112,9 @@ setreadonly(mt, false)
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     local args = {...}
-    if (method == "FireServer" or method == "fireServer") and not checkcaller() then
-        task.spawn(pcall, addLog, self, args)
+    if method == "FireServer" or method == "fireServer" then
+        -- Теперь логируем ВСЁ, даже вызовы инжектора
+        task.spawn(function() addLog(self, args) end)
     end
     return old(self, table.unpack(args))
 end)
