@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v5.3 ]] --
+-- [[ KRALLDEN SPY v5.5 ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -17,7 +17,7 @@ Header.Size = UDim2.new(1, 0, 0, 30); Header.BackgroundColor3 = Color3.fromRGB(3
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0.4, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0.05, 0, 0, 0)
-Title.Text = "KRALLDEN SPY v5.3"; Title.TextColor3 = Color3.new(1, 1, 1); Title.TextXAlignment = 0; Title.ZIndex = 11
+Title.Text = "KRALLDEN SPY v5.5"; Title.TextColor3 = Color3.new(1, 1, 1); Title.TextXAlignment = 0; Title.ZIndex = 11
 
 local ControlBtn = Instance.new("TextButton", Header)
 ControlBtn.Size = UDim2.new(0, 100, 0, 22); ControlBtn.Position = UDim2.new(1, -145, 0.5, -11)
