@@ -122,11 +122,12 @@ end
 
 local function addLog(rem, args, isSelf)
     local name = tostring(rem.Name)
-    -- СРАЗУ сохраняем путь в переменную, пока ивент еще жив
     local fullPath = getSafePath(rem) 
     
+    -- Проверка на дубликаты (Control Mode)
     if controlMode and pathHistory[fullPath] and not isSelf then return end
 
+    -- СРАЗУ форматируем аргументы в строку, пока они "свежие"
     local argTable = {}
     for i=1, 15 do 
         if args[i] == nil and i > 1 then break end
@@ -134,12 +135,20 @@ local function addLog(rem, args, isSelf)
     end
     local argStr = table.concat(argTable, ", ")
     
-    -- Генерируем готовый текст для отображения заранее
-    local logDetails = "Path: "..fullPath.."\n\nArgs: "..argStr.."\n\nScript: "..fullPath..":FireServer("..argStr..")"
+    -- Генерируем ФИНАЛЬНЫЙ текст. Он сохранится в памяти кнопки навсегда.
+    local finalDetails = "Path: "..fullPath.."\n\nArgs: "..argStr.."\n\nScript: "..fullPath..":FireServer("..argStr..")"
     
     local uniqueKey = name .. "|" .. argStr
     
-    -- Логика спам-фильтра
+    -- Вспомогательная функция для обновления окна деталей
+    local function selectLog(btn, defCol, text)
+        if selectedData then selectedData.btn.BackgroundColor3 = selectedData.color end
+        selectedData = {btn = btn, color = defCol}
+        btn.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
+        Details.Text = text -- Просто вставляем готовый текст
+    end
+
+    -- ЛОГИКА СПАМ-ФИЛЬТРА (Красная панель)
     if not isSelf then
         if not spamStats[fullPath] then spamStats[fullPath] = {count = 0, lastTime = 0, blocked = false} end
         local stat = spamStats[fullPath]
@@ -156,16 +165,13 @@ local function addLog(rem, args, isSelf)
             b.Size = UDim2.new(1, 0, 0, 26); b.Text = name; b.ZIndex = 5; b.BorderSizePixel = 0
             b.BackgroundColor3 = Color3.fromRGB(70, 30, 30); b.TextColor3 = Color3.new(1, 1, 1)
             b.MouseButton1Click:Connect(function()
-                if selectedData then selectedData.btn.BackgroundColor3 = selectedData.color end
-                selectedData = {btn = b, color = Color3.fromRGB(70, 30, 30)}
-                b.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
-                -- Используем заранее сохраненный текст
-                Details.Text = logDetails 
+                selectLog(b, Color3.fromRGB(70, 30, 30), finalDetails)
             end)
             return
         end
     end
 
+    -- ЛОГИКА ОСНОВНОГО ЛОГА (Серая панель)
     if history[uniqueKey] and not isSelf then return end
     history[uniqueKey] = true
     pathHistory[fullPath] = true
@@ -176,11 +182,7 @@ local function addLog(rem, args, isSelf)
     b.BackgroundColor3 = defCol; b.TextColor3 = Color3.new(1, 1, 1)
     
     b.MouseButton1Click:Connect(function()
-        if selectedData then selectedData.btn.BackgroundColor3 = selectedData.color end
-        selectedData = {btn = b, color = defCol}
-        b.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
-        -- Используем заранее сохраненный текст, он не сломается после удаления ивента
-        Details.Text = logDetails 
+        selectLog(b, defCol, finalDetails)
     end)
 end
 
