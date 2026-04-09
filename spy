@@ -65,11 +65,9 @@ local minimized = false
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
     
-    -- Прячем контент и кнопку контроля
     TweenFrame.Visible = not minimized
     ControlBtn.Visible = not minimized
     
-    -- Анимируем размер (узкая полоска при сворачивании)
     local targetSize = minimized and UDim2.new(0, 200, 0, 30) or UDim2.new(0, 620, 0, 400)
     Main:TweenSize(targetSize, "Out", "Quad", 0.2, true)
     
@@ -89,9 +87,6 @@ ControlBtn.MouseButton1Click:Connect(function()
     ControlBtn.BackgroundColor3 = controlMode and Color3.fromRGB(150, 50, 255) or Color3.fromRGB(80, 80, 80)
     clearLogs()
 end)
-
--- (Функции getSafePath, formatVal, addLog и перехват Namecall остаются без изменений)
--- ... [Остальной функционал из твоего исходника] ...
 
 local function getSafePath(obj)
     local path = ""
@@ -127,7 +122,8 @@ end
 
 local function addLog(rem, args, isSelf)
     local name = tostring(rem.Name)
-    local fullPath = getSafePath(rem)
+    -- СРАЗУ сохраняем путь в переменную, пока ивент еще жив
+    local fullPath = getSafePath(rem) 
     
     if controlMode and pathHistory[fullPath] and not isSelf then return end
 
@@ -137,8 +133,13 @@ local function addLog(rem, args, isSelf)
         table.insert(argTable, formatVal(args[i]))
     end
     local argStr = table.concat(argTable, ", ")
+    
+    -- Генерируем готовый текст для отображения заранее
+    local logDetails = "Path: "..fullPath.."\n\nArgs: "..argStr.."\n\nScript: "..fullPath..":FireServer("..argStr..")"
+    
     local uniqueKey = name .. "|" .. argStr
     
+    -- Логика спам-фильтра
     if not isSelf then
         if not spamStats[fullPath] then spamStats[fullPath] = {count = 0, lastTime = 0, blocked = false} end
         local stat = spamStats[fullPath]
@@ -158,7 +159,8 @@ local function addLog(rem, args, isSelf)
                 if selectedData then selectedData.btn.BackgroundColor3 = selectedData.color end
                 selectedData = {btn = b, color = Color3.fromRGB(70, 30, 30)}
                 b.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
-                Details.Text = "Path: "..fullPath.."\n\nArgs: "..argStr.."\n\nScript: "..fullPath..":FireServer("..argStr..")"
+                -- Используем заранее сохраненный текст
+                Details.Text = logDetails 
             end)
             return
         end
@@ -177,7 +179,8 @@ local function addLog(rem, args, isSelf)
         if selectedData then selectedData.btn.BackgroundColor3 = selectedData.color end
         selectedData = {btn = b, color = defCol}
         b.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
-        Details.Text = "Path: "..fullPath.."\n\nArgs: "..argStr.."\n\nScript: "..fullPath..":FireServer("..argStr..")"
+        -- Используем заранее сохраненный текст, он не сломается после удаления ивента
+        Details.Text = logDetails 
     end)
 end
 
