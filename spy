@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v8.2 - STABLE & DEV ACCESS ]] --
+-- [[ KRALLDEN SPY v8.3 - EXPANDED LAYOUT ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -9,8 +9,8 @@ local ScreenGui = Instance.new("ScreenGui", playerGui)
 ScreenGui.Name = "KralldenSpyUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 2147483647
 
 local Main = Instance.new("Frame", ScreenGui)
-Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20); Main.Size = UDim2.new(0, 660, 0, 440)
-Main.Position = UDim2.new(0.5, -330, 0.5, -220); Main.Active = true; Main.Draggable = true; Main.BorderSizePixel = 0
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20); Main.Size = UDim2.new(0, 820, 0, 440) -- Расширили до 820
+Main.Position = UDim2.new(0.5, -410, 0.5, -220); Main.Active = true; Main.Draggable = true; Main.BorderSizePixel = 0
 
 local MainMemory, PathFilter = {}, {}
 local selfMode, controlMode = true, true
@@ -39,10 +39,9 @@ local Header = Instance.new("Frame", Main)
 Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Header.ZIndex = 10
 
 local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(0.4, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0.03, 0, 0, 0)
-Title.Text = "KRALLDEN SPY v8.2"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Size = UDim2.new(0.3, 0, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0.02, 0, 0, 0)
+Title.Text = "KRALLDEN SPY v8.3"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
--- КНОПКИ УПРАВЛЕНИЯ В ШАПКЕ
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 11
 
@@ -50,48 +49,50 @@ local DevBtn = Instance.new("TextButton", Header)
 DevBtn.Size = UDim2.new(0, 45, 0, 35); DevBtn.Position = UDim2.new(1, -90, 0, 0); DevBtn.BackgroundColor3 = Color3.fromRGB(80, 40, 40); DevBtn.Text = "DEV"; DevBtn.TextColor3 = Color3.new(1, 1, 1); DevBtn.Font = Enum.Font.SourceSansBold; DevBtn.ZIndex = 11
 
 local ControlBtn = Instance.new("TextButton", Header)
-ControlBtn.Size = UDim2.new(0, 70, 0, 24); ControlBtn.Position = UDim2.new(1, -165, 0.5, -12); ControlBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255); ControlBtn.Text = "CTRL: ON"; ControlBtn.TextColor3 = Color3.new(1,1,1); ControlBtn.Font = Enum.Font.SourceSansBold; ControlBtn.TextSize = 10; ControlBtn.ZIndex = 11
+ControlBtn.Size = UDim2.new(0, 80, 0, 24); ControlBtn.Position = UDim2.new(1, -175, 0.5, -12); ControlBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255); ControlBtn.Text = "CTRL: ON"; ControlBtn.TextColor3 = Color3.new(1,1,1); ControlBtn.Font = Enum.Font.SourceSansBold; ControlBtn.TextSize = 11; ControlBtn.ZIndex = 11
 
 local SelfBtn = Instance.new("TextButton", Header)
-SelfBtn.Size = UDim2.new(0, 70, 0, 24); SelfBtn.Position = UDim2.new(1, -240, 0.5, -12); SelfBtn.BackgroundColor3 = Color3.fromRGB(45, 90, 45); SelfBtn.Text = "SELF: ON"; SelfBtn.TextColor3 = Color3.new(1,1,1); SelfBtn.Font = Enum.Font.SourceSansBold; SelfBtn.TextSize = 10; SelfBtn.ZIndex = 11
+SelfBtn.Size = UDim2.new(0, 80, 0, 24); SelfBtn.Position = UDim2.new(1, -260, 0.5, -12); SelfBtn.BackgroundColor3 = Color3.fromRGB(45, 90, 45); SelfBtn.Text = "SELF: ON"; SelfBtn.TextColor3 = Color3.new(1,1,1); SelfBtn.Font = Enum.Font.SourceSansBold; SelfBtn.TextSize = 11; SelfBtn.ZIndex = 11
 
 local ContentFrame = Instance.new("Frame", Main)
 ContentFrame.Size = UDim2.new(1, 0, 1, -35); ContentFrame.Position = UDim2.new(0, 0, 0, 35); ContentFrame.BackgroundTransparency = 1
 
 local Scroll = Instance.new("ScrollingFrame", ContentFrame)
 Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 190, 1, -16); Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Scroll.BorderSizePixel = 0
-local List = Instance.new("UIListLayout", Scroll); List.SortOrder = Enum.SortOrder.LayoutOrder
+Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
--- КНОПКИ ШПИОНАЖА (ПАНЕЛЬ ФИЛЬТРОВ СПРАВА)
+-- ПАНЕЛЬ ШПИОНАЖА (СБОКУ СПРАВА)
 local function createSideBtn(text, pos, state, color)
     local b = Instance.new("TextButton", ContentFrame)
-    b.Size = UDim2.new(0, 145, 0, 30); b.Position = pos; b.BackgroundColor3 = state and color or Color3.fromRGB(40, 40, 45)
-    b.Text = text; b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 11; b.BorderSizePixel = 0
+    b.Size = UDim2.new(0, 150, 0, 35); b.Position = pos; b.BackgroundColor3 = state and color or Color3.fromRGB(40, 40, 45)
+    b.Text = text; b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 12; b.BorderSizePixel = 0
     return b
 end
 
-local BtnFS = createSideBtn("FS SPY: ON", UDim2.new(0, 205, 0, 8), spyFS, Color3.fromRGB(150, 50, 255))
-local BtnFC = createSideBtn("FC SPY: OFF", UDim2.new(0, 205, 0, 43), spyFC, Color3.fromRGB(50, 150, 255))
-local BtnIS = createSideBtn("IS SPY: OFF", UDim2.new(0, 205, 0, 78), spyIS, Color3.fromRGB(255, 150, 50))
+-- Вынесли кнопки в самый край справа (820 - 158 = 662 примерно)
+local BtnFS = createSideBtn("FS SPY: ON", UDim2.new(0, 662, 0, 8), spyFS, Color3.fromRGB(150, 50, 255))
+local BtnFC = createSideBtn("FC SPY: OFF", UDim2.new(0, 662, 0, 48), spyFC, Color3.fromRGB(50, 150, 255))
+local BtnIS = createSideBtn("IS SPY: OFF", UDim2.new(0, 662, 0, 88), spyIS, Color3.fromRGB(255, 150, 50))
 
+-- DETAILS (Возвращена ширина)
 local Details = Instance.new("TextBox", ContentFrame)
-Details.Position = UDim2.new(0, 355, 0, 8); Details.Size = UDim2.new(0, 295, 0.55, 0)
-Details.BackgroundColor3 = Color3.fromRGB(10, 10, 12); Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = false; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.Font = Enum.Font.Code; Details.TextSize = 11
+Details.Position = UDim2.new(0, 205, 0, 8); Details.Size = UDim2.new(0, 448, 0.58, 0)
+Details.BackgroundColor3 = Color3.fromRGB(10, 10, 12); Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = false; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.Font = Enum.Font.Code; Details.TextSize = 12
 
--- КНОПКИ ДЕЙСТВИЙ
+-- КНОПКИ ДЕЙСТВИЙ (GRID 2x2 под Details)
 local function createActionBtn(text, pos, color)
     local b = Instance.new("TextButton", ContentFrame)
-    b.Size = UDim2.new(0, 218, 0, 55); b.Position = pos; b.BackgroundColor3 = color
+    b.Size = UDim2.new(0, 220, 0, 58); b.Position = pos; b.BackgroundColor3 = color
     b.Text = text; b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 14
     return b
 end
 
 local CopyArgs = createActionBtn("COPY ARGS", UDim2.new(0, 205, 0.68, 0), Color3.fromRGB(45, 90, 45))
-local CopyScript = createActionBtn("COPY SCRIPT", UDim2.new(0, 205, 0.82, 0), Color3.fromRGB(60, 60, 120))
+local CopyScript = createActionBtn("COPY SCRIPT", UDim2.new(0, 205, 0.83, 0), Color3.fromRGB(60, 60, 120))
 local ClearLog = createActionBtn("CLEAR LOG", UDim2.new(0, 432, 0.68, 0), Color3.fromRGB(80, 80, 85))
-local ExecScript = createActionBtn("EXECUTE", UDim2.new(0, 432, 0.82, 0), Color3.fromRGB(120, 60, 60))
+local ExecScript = createActionBtn("EXECUTE", UDim2.new(0, 432, 0.83, 0), Color3.fromRGB(120, 60, 60))
 
--- [[ ЛОГИКА ]] --
+-- [[ ЛОГИКА ОБНОВЛЕНИЯ ]] --
 local function RebuildGUI()
     if not ContentFrame.Visible or #MainMemory == lastCount then return end
     lastCount = #MainMemory
@@ -154,6 +155,15 @@ BtnFS.MouseButton1Click:Connect(function() spyFS = not spyFS; BtnFS.Text = "FS S
 BtnFC.MouseButton1Click:Connect(function() spyFC = not spyFC; BtnFC.Text = "FC SPY: "..(spyFC and "ON" or "OFF"); BtnFC.BackgroundColor3 = spyFC and Color3.fromRGB(50, 150, 255) or Color3.fromRGB(40, 40, 45) end)
 BtnIS.MouseButton1Click:Connect(function() spyIS = not spyIS; BtnIS.Text = "IS SPY: "..(spyIS and "ON" or "OFF"); BtnIS.BackgroundColor3 = spyIS and Color3.fromRGB(255, 150, 50) or Color3.fromRGB(40, 40, 45) end)
 DevBtn.MouseButton1Click:Connect(function() game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.F9, false, game) end)
-MinBtn.MouseButton1Click:Connect(function() ContentFrame.Visible = not ContentFrame.Visible; SelfBtn.Visible = ContentFrame.Visible; ControlBtn.Visible = ContentFrame.Visible; Main:TweenSize(ContentFrame.Visible and UDim2.new(0, 660, 0, 440) or UDim2.new(0, 240, 0, 35), "Out", "Quad", 0.1, true); MinBtn.Text = ContentFrame.Visible and "_" or "+"; if ContentFrame.Visible then lastCount = -1 end end)
+MinBtn.MouseButton1Click:Connect(function() 
+    ContentFrame.Visible = not ContentFrame.Visible; SelfBtn.Visible = ContentFrame.Visible; ControlBtn.Visible = ContentFrame.Visible; DevBtn.Visible = ContentFrame.Visible
+    Main:TweenSize(ContentFrame.Visible and UDim2.new(0, 820, 0, 440) or UDim2.new(0, 240, 0, 35), "Out", "Quad", 0.1, true)
+    MinBtn.Text = ContentFrame.Visible and "_" or "+"
+    if ContentFrame.Visible then lastCount = -1 end 
+end)
 ClearLog.MouseButton1Click:Connect(function() MainMemory, PathFilter, lastCount = {}, {}, 0; Details.Text = ""; for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end end)
 CopyArgs.MouseButton1Click:Connect(function() setclipboard(Details.Text:match("Args: (.*)\n\nScript") or "") end)
+CopyScript.MouseButton1Click:Connect(function() setclipboard(Details.Text:match("Script: (.*)") or "") end)
+ExecScript.MouseButton1Click:Connect(function() local code = Details.Text:match("Script: (.*)"); if code then loadstring(code)() end end)
+SelfBtn.MouseButton1Click:Connect(function() selfMode = not selfMode; SelfBtn.Text = "SELF: "..(selfMode and "ON" or "OFF"); SelfBtn.BackgroundColor3 = selfMode and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(150, 50, 50) end)
+ControlBtn.MouseButton1Click:Connect(function() controlMode = not controlMode; ControlBtn.Text = "CTRL: "..(controlMode and "ON" or "OFF"); ControlBtn.BackgroundColor3 = controlMode and Color3.fromRGB(150, 50, 255) or Color3.fromRGB(80, 80, 85) end)
