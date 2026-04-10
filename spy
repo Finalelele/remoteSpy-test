@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v8.1 - CLEAN LAYOUT & TRIPLE SPY ]] --
+-- [[ KRALLDEN SPY v8.1 - CLEAN LAYOUT & TRIPLE SPY MODE ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
