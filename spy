@@ -93,36 +93,68 @@ end
 
 local function addLog(rem, args, isSelf, typeLabel)
     if (typeLabel == "FS" and not spyFS) or (typeLabel == "FC" and not spyFC) or (typeLabel == "IS" and not spyIS) then return end
+    
     local eventPath = getSafePath(rem)
     local argStrings = {}
-    for _, v in pairs(args) do pcall(function() table.insert(argStrings, (typeof(v) == "Instance" and getSafePath(v) or parseTable(v))) end) end
-    local finalArgs = table.concat(argStrings, ", ")
-    local sig = eventPath .. finalArgs
-    
-    if not controlMode and antiSpam and not isSelf then
-        if BannedPaths[eventPath] then return end
-        if PathFilter[sig] then return end
-        local now = tick()
-        if (now - (AntiSpamCooldowns[eventPath] or 0)) < 0.6 then
-            AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
-            if AntiSpamCounts[eventPath] >= 3 then BannedPaths[eventPath] = true return end
-            return 
-        else AntiSpamCounts[eventPath] = 0 end
-        AntiSpamCooldowns[eventPath] = now
+    for _, v in pairs(args) do 
+        pcall(function() table.insert(argStrings, (typeof(v) == "Instance" and getSafePath(v) or parseTable(v))) end) 
     end
+    local finalArgs = table.concat(argStrings, ", ")
+    local sig = eventPath .. finalArgs -- Путь + Аргументы
+    
+    -- --- СТРОГАЯ ЛОГИКА ФИЛЬТРАЦИИ ---
+    if isSelf then
+        -- Фильтр для ТВОИХ вызовов (Инжектор/Скрипты)
+        if selfMode then
+            -- Если SELF: ON -> Блокируем по ПУТИ
+            if PathFilter["MY_PATH_" .. eventPath] then return end
+            PathFilter["MY_PATH_" .. eventPath] = true
+        else
+            -- Если SELF: OFF -> Блокируем по ПУТИ + АРГУМЕНТАМ
+            if PathFilter["MY_SIG_" .. sig] then return end
+            PathFilter["MY_SIG_" .. sig] = true
+        end
+    else
+        -- Фильтр для ИГРОВЫХ вызовов (Сервер/Другие скрипты)
+        -- Всегда блокируем дубликаты (Путь + Аргументы), чтобы не спамило
+        if PathFilter["GAME_SIG_" .. sig] then return end
+        
+        -- Твоя старая проверка Анти-спама для CONTROL режима
+        if not controlMode and antiSpam then
+            if BannedPaths[eventPath] then return end
+            local now = tick()
+            if (now - (AntiSpamCooldowns[eventPath] or 0)) < 0.6 then
+                AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
+                if AntiSpamCounts[eventPath] >= 3 then BannedPaths[eventPath] = true return end
+                return 
+            else AntiSpamCounts[eventPath] = 0 end
+            AntiSpamCooldowns[eventPath] = now
+        end
+        PathFilter["GAME_SIG_" .. sig] = true
+    end
+    -- ---------------------------------
 
-    local filterSig = controlMode and eventPath or sig
-    if not isSelf and PathFilter[filterSig] then return end
-    if isSelf and selfMode and PathFilter["S" .. filterSig] then return end
-    
-    PathFilter[isSelf and "S" .. filterSig or filterSig] = true
     local method = (typeLabel == "IS" and "InvokeServer" or (typeLabel == "FC" and "FireClient" or "FireServer"))
-    
-    table.insert(MainMemory, 1, {
-        guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, 
+    local logData = {
+        guid = generateGUID(), 
+        name = tostring(rem.Name), 
+        type = typeLabel, 
         fullText = string.format("Type: %s\nPath: %s\n\nArgs: %s\n\nScript: %s:%s(%s)", typeLabel, eventPath, finalArgs, eventPath, method, finalArgs), 
         isSelf = isSelf
-    })
+    }
+
+    -- ПРИОРИТЕТ: Свои всегда сверху
+    if isSelf then
+        table.insert(MainMemory, 1, logData)
+    else
+        -- Вставляем после последнего своего [S] лога
+        local insertIndex = 1
+        for i, v in ipairs(MainMemory) do
+            if not v.isSelf then break end
+            insertIndex = i + 1
+        end
+        table.insert(MainMemory, insertIndex, logData)
+    end
 end
 
 -- HOOK
