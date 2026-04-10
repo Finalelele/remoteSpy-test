@@ -1,8 +1,8 @@
--- [[ KRALLDEN SPY v9.3 - FIXED & FULL UI ]] --
+-- [[ KRALLDEN SPY v9.4 - UI FIXED + DEBUG OUTPUT ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-local TweenService = game:GetService("TweenService")
+local LogService = game:GetService("LogService")
 
 if playerGui:FindFirstChild("KralldenSpyUI") then playerGui.KralldenSpyUI:Destroy() end
 
@@ -13,154 +13,105 @@ local Main = Instance.new("Frame", ScreenGui)
 Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20); Main.Size = UDim2.new(0, 820, 0, 440)
 Main.Position = UDim2.new(0.5, -410, 0.5, -220); Main.Active = true; Main.Draggable = true; Main.BorderSizePixel = 0
 
-local MainMemory, PathFilter, BannedPaths = {}, {}, {}
-local AntiSpamCooldowns, AntiSpamCounts = {}, {}
-local selfMode, controlMode, antiSpam = true, true, false
-local spyFS, spyFC, spyIS = true, false, false
-local currentSelectionGUID, lastCount = nil, 0
+-- ПАНЕЛЬ ОТЛАДКИ (Вместо F9)
+local DebugFrame = Instance.new("ScrollingFrame", ScreenGui)
+DebugFrame.Size = UDim2.new(0, 300, 0, 150); DebugFrame.Position = UDim2.new(0, 10, 1, -160)
+DebugFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0); DebugFrame.BackgroundTransparency = 0.5
+DebugFrame.CanvasSize = UDim2.new(0, 0, 0, 0); DebugFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
-local fullSize = UDim2.new(0, 820, 0, 440)
-local minSize = UDim2.new(0, 185, 0, 35)
-
-local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.random(1, 100000)) end
+local DebugList = Instance.new("UIListLayout", DebugFrame)
+local function printToUI(msg, color)
+    local t = Instance.new("TextLabel", DebugFrame)
+    t.Size = UDim2.new(1, 0, 0, 20); t.BackgroundTransparency = 1; t.Text = " [LOG]: " .. tostring(msg)
+    t.TextColor3 = color or Color3.new(1, 1, 1); t.TextSize = 10; t.Font = Enum.Font.Code; t.TextXAlignment = 0
+end
 
 -- HEADER
 local Header = Instance.new("Frame", Main)
-Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Header.BorderSizePixel = 0
+Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Header.BorderSizePixel = 0; Header.ZIndex = 5
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 140, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 10, 0, 0)
-Title.Text = "KRALLDEN SPY"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 6
 
-local ContentFrame = Instance.new("Frame", Main)
-ContentFrame.Name = "ContentFrame"; ContentFrame.Size = UDim2.new(1, 0, 1, -35); ContentFrame.Position = UDim2.new(0, 0, 0, 35); ContentFrame.BackgroundTransparency = 1
-
--- !!! ВОТ ЭТОГО НЕ ХВАТАЛО: Создание списка и деталей !!!
-local Scroll = Instance.new("ScrollingFrame", ContentFrame)
-Scroll.Name = "ScrollingFrame"; Scroll.Size = UDim2.new(0, 300, 1, -10); Scroll.Position = UDim2.new(0, 5, 0, 5)
-Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.BorderSizePixel = 0; Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-
-local UIList = Instance.new("UIListLayout", Scroll)
-UIList.Padding = UDim.new(0, 2)
-
-local Details = Instance.new("TextBox", ContentFrame)
-Details.Name = "Details"; Details.Size = UDim2.new(1, -315, 1, -10); Details.Position = UDim2.new(0, 310, 0, 5)
-Details.BackgroundColor3 = Color3.fromRGB(10, 10, 15); Details.TextColor3 = Color3.fromRGB(200, 200, 200)
-Details.TextSize = 12; Details.Font = Enum.Font.Code; Details.TextXAlignment = 0; Details.TextYAlignment = 0
-Details.ClearTextOnFocus = false; Details.ReadOnly = true; Details.MultiLine = true; Details.Text = "Logs will appear here..."
-
--- КНОПКИ
+-- КНОПКИ (С высоким ZIndex, чтобы не пропадали)
 local MinBtn = Instance.new("TextButton", Header)
-MinBtn.Size = UDim2.new(0, 40, 0, 35); MinBtn.Position = UDim2.new(1, -40, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.BorderSizePixel = 0
+MinBtn.Size = UDim2.new(0, 40, 0, 35); MinBtn.Position = UDim2.new(1, -40, 0, 0)
+MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.ZIndex = 7
 
 local ControlBtn = Instance.new("TextButton", Header)
-ControlBtn.Size = UDim2.new(0, 100, 0, 24); ControlBtn.Position = UDim2.new(1, -145, 0.5, -12); ControlBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255); ControlBtn.Text = "CONTROL: ON"; ControlBtn.TextColor3 = Color3.new(1,1,1); ControlBtn.Font = Enum.Font.SourceSansBold; ControlBtn.TextSize = 11
+ControlBtn.Size = UDim2.new(0, 100, 0, 24); ControlBtn.Position = UDim2.new(1, -145, 0.5, -12)
+ControlBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255); ControlBtn.Text = "CONTROL: ON"; ControlBtn.TextColor3 = Color3.new(1,1,1); ControlBtn.ZIndex = 7; ControlBtn.TextSize = 10
 
 local SelfBtn = Instance.new("TextButton", Header)
-SelfBtn.Size = UDim2.new(0, 80, 0, 24); SelfBtn.Position = UDim2.new(1, -230, 0.5, -12); SelfBtn.BackgroundColor3 = Color3.fromRGB(45, 90, 45); SelfBtn.Text = "SELF: ON"; SelfBtn.TextColor3 = Color3.new(1,1,1); SelfBtn.Font = Enum.Font.SourceSansBold; SelfBtn.TextSize = 11
+SelfBtn.Size = UDim2.new(0, 80, 0, 24); SelfBtn.Position = UDim2.new(1, -230, 0.5, -12)
+SelfBtn.BackgroundColor3 = Color3.fromRGB(45, 90, 45); SelfBtn.Text = "SELF: ON"; SelfBtn.TextColor3 = Color3.new(1,1,1); SelfBtn.ZIndex = 7; SelfBtn.TextSize = 10
 
-local function fullClear()
-    MainMemory, PathFilter, lastCount, currentSelectionGUID = {}, {}, 0, nil
-    BannedPaths, AntiSpamCounts, AntiSpamCooldowns = {}, {}, {}
-    Details.Text = ""
-    for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-end
+-- CONTENT
+local ContentFrame = Instance.new("Frame", Main)
+ContentFrame.Size = UDim2.new(1, 0, 1, -35); ContentFrame.Position = UDim2.new(0, 0, 0, 35); ContentFrame.BackgroundTransparency = 1
 
--- ЛОГИКА СВОРАЧИВАНИЯ
-MinBtn.MouseButton1Click:Connect(function()
-    ContentFrame.Visible = not ContentFrame.Visible
-    local isVis = ContentFrame.Visible
-    ControlBtn.Visible = isVis
-    SelfBtn.Visible = isVis
-    
-    local targetSize = isVis and fullSize or minSize
-    local targetPos = isVis and Main.Position - UDim2.new(0, 635, 0, 0) or Main.Position + UDim2.new(0, 635, 0, 0)
-    
-    Main:TweenSize(targetSize, "Out", "Quad", 0.15, true)
-    MinBtn.Text = isVis and "_" or "+"
-end)
+local Scroll = Instance.new("ScrollingFrame", ContentFrame)
+Scroll.Size = UDim2.new(0, 300, 1, -10); Scroll.Position = UDim2.new(0, 5, 0, 5)
+Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.BorderSizePixel = 0; Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
--- ПАРСЕР (Улучшен для таблиц)
-local function parseTable(t, depth)
-    depth = depth or 0
-    if type(t) ~= "table" or depth > 3 then return tostring(t) end
-    local result = "{"
-    for k, v in pairs(t) do
-        result = result .. tostring(k) .. "=" .. parseTable(v, depth + 1) .. ","
-    end
-    return result .. "}"
-end
+local UIList = Instance.new("UIListLayout", Scroll); UIList.Padding = UDim.new(0, 2)
 
-local function getSafePath(obj)
-    local p = ""
-    pcall(function()
-        local t = obj
-        while t and t ~= game do
-            local n = tostring(t.Name); p = (n:match("[%s%W]") and '["'..n..'"]' or n) .. (p ~= "" and "." .. p or ""); t = t.Parent
-        end
-    end)
-    return "game." .. p
-end
+local Details = Instance.new("TextBox", ContentFrame)
+Details.Size = UDim2.new(1, -315, 1, -10); Details.Position = UDim2.new(0, 310, 0, 5)
+Details.BackgroundColor3 = Color3.fromRGB(10, 10, 15); Details.TextColor3 = Color3.fromRGB(200, 200, 200); Details.ZIndex = 4
+Details.TextSize = 12; Details.Font = Enum.Font.Code; Details.TextXAlignment = 0; Details.TextYAlignment = 0
+Details.ClearTextOnFocus = false; Details.ReadOnly = true; Details.MultiLine = true; Details.Text = "Logs..."
+
+-- LOGIC
+local MainMemory, PathFilter = {}, {}
+local selfMode, controlMode = true, true
 
 local function addLog(rem, args, isSelf, typeLabel)
     if not rem then return end
-    local eventPath = getSafePath(rem)
-    local argStrings = {}
-    for _, v in pairs(args) do table.insert(argStrings, parseTable(v)) end
-    local finalArgs = table.concat(argStrings, ", ")
+    local eventPath = "game." .. rem:GetFullName()
+    local argStr = "{}" -- Упрощенный парсер для стабильности
     
-    local filterSig = controlMode and eventPath or (eventPath .. finalArgs)
-    if not isSelf and PathFilter[filterSig] then return end
-    if isSelf and not selfMode then return end
-
-    PathFilter[filterSig] = true
     table.insert(MainMemory, 1, {
-        guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, 
-        fullText = string.format("-- KRALLDEN SPY\nMethod: %s\nPath: %s\nArguments: %s", typeLabel, eventPath, finalArgs), 
+        name = rem.Name, type = typeLabel, 
+        fullText = "Path: "..eventPath.."\nType: "..typeLabel.."\nSelf: "..tostring(isSelf),
         isSelf = isSelf
     })
-    if #MainMemory > 100 then table.remove(MainMemory, 101) end
+    if #MainMemory > 50 then table.remove(MainMemory, 51) end
 end
 
--- HOOK
+-- HOOK (Замени на свой рабочий хук, если этот не поддерживается твоим эксплойтом)
 local mt = getrawmetatable(game); local old = mt.__namecall; setreadonly(mt, false)
 mt.__namecall = newcclosure(function(self, ...)
-    local m = getnamecallmethod(); local a = {...}; local s = checkcaller()
-    if m == "FireServer" then task.spawn(addLog, self, a, s, "FS")
-    elseif m == "InvokeServer" then task.spawn(addLog, self, a, s, "IS") end
+    local m = getnamecallmethod(); local s = checkcaller()
+    if m == "FireServer" or m == "InvokeServer" then task.spawn(addLog, self, {...}, s, m == "FireServer" and "FS" or "IS") end
     return old(self, ...)
 end)
 setreadonly(mt, true)
 
--- ОБНОВЛЕНИЕ UI
+-- ОБНОВЛЕНИЕ СПИСКА
+task.spawn(function()
+    while task.wait(0.5) do
+        for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+        for _, data in ipairs(MainMemory) do
+            local b = Instance.new("TextButton", Scroll)
+            b.Size = UDim2.new(1, -10, 0, 25); b.Text = "["..data.type.."] " .. data.name
+            b.BackgroundColor3 = data.isSelf and Color3.fromRGB(40, 60, 40) or Color3.fromRGB(35, 35, 40)
+            b.TextColor3 = Color3.new(1,1,1); b.BorderSizePixel = 0
+            b.MouseButton1Click:Connect(function() Details.Text = data.fullText end)
+        end
+    end
+end)
+
+-- Управление кнопками
 ControlBtn.MouseButton1Click:Connect(function() 
     controlMode = not controlMode
     ControlBtn.Text = "CONTROL: "..(controlMode and "ON" or "OFF")
-    ControlBtn.BackgroundColor3 = controlMode and Color3.fromRGB(150, 50, 255) or Color3.fromRGB(80, 80, 85)
-    fullClear()
 end)
 
 SelfBtn.MouseButton1Click:Connect(function() 
     selfMode = not selfMode
     SelfBtn.Text = "SELF: "..(selfMode and "ON" or "OFF")
-    SelfBtn.BackgroundColor3 = selfMode and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(150, 50, 50) 
 end)
 
-task.spawn(function()
-    while task.wait(0.3) do
-        if #MainMemory ~= lastCount then
-            lastCount = #MainMemory
-            for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-            for i, data in ipairs(MainMemory) do
-                local b = Instance.new("TextButton", Scroll)
-                b.Size = UDim2.new(1, -10, 0, 25); b.Text = "["..data.type.."] " .. data.name
-                b.BackgroundColor3 = (data.isSelf and Color3.fromRGB(40, 60, 40) or Color3.fromRGB(30, 30, 35))
-                b.TextColor3 = Color3.new(1,1,1); b.BorderSizePixel = 0; b.TextSize = 10
-                b.MouseButton1Click:Connect(function()
-                    Details.Text = data.fullText
-                end)
-            end
-            Scroll.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y)
-        end
-    end
-end)
+printToUI("Spy Loaded Successfully!", Color3.new(0, 1, 0))
