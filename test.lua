@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.2.7 - FULL SOURCE - GLOBAL FILTER LOGIC ]] --
+-- [[ KRALLDEN SPY v9.2.8 - FULL SOURCE - SYNCED SELF FILTER ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -18,6 +18,12 @@ local selfMode, controlMode, antiSpam = true, true, true
 local spyFS, spyFC, spyIS = true, false, false
 local currentSelectionGUID, lastCount = nil, 0
 local isMin = false
+
+-- Специальная таблица для синхронизации SELF фильтров
+local SelfGlobalFilter = {
+    Paths = {}, -- Сюда попадают пути, если они были залогированы в режиме ON
+    Args = {}   -- Тут храним [путь] = {аргументы1, аргументы2}, если в режиме OFF
+}
 
 local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.random(1, 100000)) end
 
@@ -68,6 +74,7 @@ end
 
 local function fullClear()
     MainMemory, PathFilter, lastCount, currentSelectionGUID = {}, {}, 0, nil
+    SelfGlobalFilter = { Paths = {}, Args = {} }
     ManualBannedPaths = {}
     AntiSpamCooldowns, AntiSpamCounts = {}, {}
     if Details then Details.Text = "" end
@@ -82,7 +89,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.2.7"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.2.8"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -160,13 +167,17 @@ local function addLog(rem, args, isSelf, typeLabel)
     for i, v in ipairs(args) do table.insert(argList, parseValue(v)) end
     local finalArgsStr = table.concat(argList, ", ")
     
-    -- [[ НОВАЯ ЛОГИКА ФИЛЬТРАЦИИ ]]
-    -- Сначала проверяем, есть ли этот путь в глобальном фильтре для Self
+    -- [[ СИНХРОНИЗИРОВАННАЯ ФИЛЬТРАЦИЯ SELF ]]
     if isSelf then
-        if PathFilter["S_P_" .. eventPath] then return end -- Если уже видели этот путь (Self ON), блочим
-        if not selfMode and PathFilter["S_A_" .. eventPath .. "|" .. finalArgsStr] then return end -- Если Self OFF и аргументы те же, блочим
+        -- 1. Если этот путь УЖЕ залогирован в режиме ON, игнорируем его навсегда
+        if SelfGlobalFilter.Paths[eventPath] then return end
+        
+        -- 2. Проверяем аргументы (для режима OFF или если режим сменился)
+        if SelfGlobalFilter.Args[eventPath] and SelfGlobalFilter.Args[eventPath][finalArgsStr] then
+            return -- Эти аргументы для этого пути мы уже видели
+        end
     else
-        -- Обычная фильтрация для чужих вызовов
+        -- Обычный фильтр для чужих ивентов
         local otherKey = (controlMode and "C_P_" or "C_A_") .. eventPath .. (controlMode and "" or "|" .. finalArgsStr)
         if PathFilter[otherKey] then return end
     end
@@ -174,6 +185,7 @@ local function addLog(rem, args, isSelf, typeLabel)
     local methodName = (typeLabel == "IS" and "InvokeServer" or "FireServer")
     local logDetails = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, finalArgsStr, eventPath, methodName, finalArgsStr)
 
+    -- ANTI-SPAM LOGIC
     if not isSelf and not controlMode and antiSpam then
         if (tick() - (AntiSpamCooldowns[eventPath] or 0)) < 0.4 then
             AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
@@ -186,17 +198,20 @@ local function addLog(rem, args, isSelf, typeLabel)
         AntiSpamCooldowns[eventPath] = tick()
     end
 
-    local data = { guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf, fullText = logDetails }
-    
-    -- Записываем в фильтр
+    -- RECORDING TO FILTERS
     if isSelf then
-        if selfMode then PathFilter["S_P_" .. eventPath] = true 
-        else PathFilter["S_A_" .. eventPath .. "|" .. finalArgsStr] = true end
+        if selfMode then
+            SelfGlobalFilter.Paths[eventPath] = true
+        else
+            if not SelfGlobalFilter.Args[eventPath] then SelfGlobalFilter.Args[eventPath] = {} end
+            SelfGlobalFilter.Args[eventPath][finalArgsStr] = true
+        end
     else
         local otherKey = (controlMode and "C_P_" or "C_A_") .. eventPath .. (controlMode and "" or "|" .. finalArgsStr)
         PathFilter[otherKey] = true
     end
-    
+
+    local data = { guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf, fullText = logDetails }
     table.insert(MainMemory, 1, data)
 end
 
