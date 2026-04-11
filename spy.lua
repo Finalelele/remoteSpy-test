@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.2.5 - FULL SOURCE - FINAL SELF LOGIC ]] --
+-- [[ KRALLDEN SPY v9.2.5 - FULL SOURCE - FINAL SELF LOGIC FIXED ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -153,23 +153,16 @@ local function addLog(rem, args, isSelf, typeLabel)
     for i, v in ipairs(args) do table.insert(argList, parseValue(v)) end
     local finalArgsStr = table.concat(argList, ", ")
     
-    -- [[ ЛОГИКА ФИЛЬТРАЦИИ ]]
+    -- [[ ИСПРАВЛЕННАЯ ЛОГИКА ФИЛЬТРАЦИИ v9.2.5 ]]
     local filterKey = ""
     if isSelf then
         if selfMode then
-            -- SELF ON: Баним только по пути
-            filterKey = "SELF_PATH_" .. eventPath
+            filterKey = "S_P_" .. eventPath -- SELF ON: Бан по пути
         else
-            -- SELF OFF: Баним Путь + Аргументы
-            filterKey = "SELF_FULL_" .. eventPath .. "|" .. finalArgsStr
+            filterKey = "S_A_" .. eventPath .. "|" .. finalArgsStr -- SELF OFF: Бан по пути + Аргументам
         end
     else
-        -- Обычные ивенты (Control)
-        if controlMode then
-            filterKey = "CTRL_PATH_" .. eventPath
-        else
-            filterKey = "CTRL_FULL_" .. eventPath .. "|" .. finalArgsStr
-        end
+        filterKey = (controlMode and "C_P_" or "C_A_") .. eventPath .. (controlMode and "" or "|" .. finalArgsStr)
     end
 
     if PathFilter[filterKey] then return end
@@ -298,15 +291,14 @@ end)
 SelfBtn.MouseButton1Click:Connect(function() 
     selfMode = not selfMode
     
-    -- [[ ОЧИСТКА БАН-СПИСКА НАШИХ ИВЕНТОВ ПРИ ПЕРЕКЛЮЧЕНИИ ]]
+    -- ПРИНУДИТЕЛЬНАЯ ОЧИСТКА ФИЛЬТРОВ SELF ПРИ ПЕРЕКЛЮЧЕНИИ
     local newFilters = {}
     for k, v in pairs(PathFilter) do 
-        if not k:match("^SELF_") then 
+        if not k:match("^S_") then 
             newFilters[k] = v 
         end 
     end
     PathFilter = newFilters
-    
     lastCount = -1 -- Обновляем UI
     
     SelfBtn.Text = "SELF: "..(selfMode and "ON" or "OFF")
