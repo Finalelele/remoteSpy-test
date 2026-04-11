@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.1.6 - FULL SOURCE - CLEAN PARSER ]] --
+-- [[ KRALLDEN SPY v9.1.7 - FULL SOURCE - SELF FIX & UI POLISH ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -23,6 +23,7 @@ local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.ra
 
 local RedListScroll, Scroll, Details, ContentFrame
 
+-- [[ УНИВЕРСАЛЬНЫЙ ОБНОВИТЕЛЬ ЦВЕТОВ ]] --
 local function refreshSelectionColors()
     for _, v in pairs(Scroll:GetChildren()) do
         if v:IsA("TextButton") then
@@ -65,6 +66,7 @@ local function fullClear()
     if Details then Details.Text = "" end
     if Scroll then for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end end
     updateRedListUI()
+    refreshSelectionColors()
 end
 
 -- HEADER
@@ -73,7 +75,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.1.6"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.1.7"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -111,7 +113,6 @@ local function getSafePath(obj)
     return p ~= "" and "game." .. p:gsub("%.%[", "[") or "game.NilObject"
 end
 
--- [[ ИСПРАВЛЕННЫЙ ПАРСЕР БЕЗ ЛИШНИХ СКОБОК ]] --
 local function addLog(rem, args, isSelf, typeLabel)
     if isSelf and not selfMode then return end
     if (typeLabel == "FS" and not spyFS) or (typeLabel == "FC" and not spyFC) or (typeLabel == "IS" and not spyIS) then return end
@@ -146,21 +147,19 @@ local function addLog(rem, args, isSelf, typeLabel)
         else return tostring(v) end
     end
 
-    -- Собираем аргументы через запятую без внешней обертки {}
     local argList = {}
-    for i, v in ipairs(args) do
-        table.insert(argList, parseValue(v))
-    end
+    for i, v in ipairs(args) do table.insert(argList, parseValue(v)) end
     local finalArgsStr = table.concat(argList, ", ")
     
     local methodName = (typeLabel == "IS" and "InvokeServer" or "FireServer")
-    local logDetails = string.format("Type: %s\nPath: %s\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, finalArgsStr, eventPath, methodName, finalArgsStr)
+    -- УЛУЧШЕННЫЙ ВЫВОД (Details разделены пустой строкой)
+    local logDetails = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, finalArgsStr, eventPath, methodName, finalArgsStr)
 
     if not controlMode and antiSpam then
         if (tick() - (AntiSpamCooldowns[eventPath] or 0)) < 0.4 then
             AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
             if AntiSpamCounts[eventPath] >= 4 then
-                ManualBannedPaths[eventPath] = {guid = generateGUID(), details = "AUTO-BANNED BY ANTI-SPAM\n" .. logDetails}
+                ManualBannedPaths[eventPath] = {guid = generateGUID(), details = "AUTO-BANNED BY ANTI-SPAM\n\n" .. logDetails}
                 local cleanMemory = {}
                 for _, m in ipairs(MainMemory) do
                     if not m.fullText:match("Path: " .. eventPath:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")) then
@@ -168,6 +167,7 @@ local function addLog(rem, args, isSelf, typeLabel)
                     end
                 end
                 MainMemory = cleanMemory
+                currentSelectionGUID = nil -- Сброс выделения
                 lastCount = -1 
                 updateRedListUI(); return 
             end
@@ -177,7 +177,7 @@ local function addLog(rem, args, isSelf, typeLabel)
 
     local data = { guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf, fullText = logDetails }
     if controlMode then PathFilter[eventPath] = true end
-    if isSelf then table.insert(MainMemory, 1, data) else table.insert(MainMemory, data) end
+    table.insert(MainMemory, 1, data) -- Новые ивенты всегда сверху
 end
 
 -- HOOKS
@@ -204,9 +204,11 @@ BlockBtn.MouseButton1Click:Connect(function()
             if d.guid == currentSelectionGUID then
                 local p = d.fullText:match("Path: (.-)\n")
                 if p then
-                    ManualBannedPaths[p] = {guid = d.guid, details = "MANUAL BANNED:\n" .. d.fullText}
+                    ManualBannedPaths[p] = {guid = d.guid, details = "MANUAL BANNED:\n\n" .. d.fullText}
                     local nM = {}; for _, m in ipairs(MainMemory) do if not m.fullText:match("Path: " .. p:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")) then table.insert(nM, m) end end
-                    MainMemory = nM; lastCount = -1; updateRedListUI(); Details.Text = "Banned."
+                    MainMemory = nM; lastCount = -1; 
+                    currentSelectionGUID = nil -- Исправление "зависшего" цвета
+                    updateRedListUI(); Details.Text = "Banned."
                 end; break
             end
         end
