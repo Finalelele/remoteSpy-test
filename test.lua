@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.2.1 - FULL SOURCE - SELF TOP & DYNAMIC FILTER RESET ]] --
+-- [[ KRALLDEN SPY v9.2.2 - FULL SOURCE - TRUE SELF RESET ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -74,7 +74,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.2.1"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.2.2"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -235,16 +235,14 @@ MinBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- RENDER LOOP (С ПРИОРИТЕТОМ SELF ВВЕРХУ)
+-- RENDER LOOP (SELF TOP)
 task.spawn(function()
     while task.wait(0.5) do
         if not ContentFrame or not ContentFrame.Visible or #MainMemory == lastCount then continue end
         lastCount = #MainMemory; for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
         
         local sortedMemory = {}
-        -- Сначала добавляем Self ивенты
         for _, d in ipairs(MainMemory) do if d.isSelf then table.insert(sortedMemory, d) end end
-        -- Затем добавляем обычные
         for _, d in ipairs(MainMemory) do if not d.isSelf then table.insert(sortedMemory, d) end end
 
         for i, d in ipairs(sortedMemory) do
@@ -287,10 +285,20 @@ end)
 
 SelfBtn.MouseButton1Click:Connect(function() 
     selfMode = not selfMode
-    -- [[ СБРОС ФИЛЬТРОВ ДЛЯ SELF ПРИ ПЕРЕКЛЮЧЕНИИ ]] --
+    
+    -- [[ ПОЛНЫЙ СБРОС ДЛЯ SELF ]] --
+    -- 1. Очищаем фильтры
     local newFilters = {}
     for k, v in pairs(PathFilter) do if not k:match("^SELF_") then newFilters[k] = v end end
     PathFilter = newFilters
+    
+    -- 2. Удаляем все Self ивенты из памяти, чтобы они могли появиться снова
+    local newMemory = {}
+    for _, d in ipairs(MainMemory) do if not d.isSelf then table.insert(newMemory, d) end end
+    MainMemory = newMemory
+    
+    -- Сбрасываем счетчик для рендера
+    lastCount = -1 
     
     SelfBtn.Text = "SELF: "..(selfMode and "ON" or "OFF")
     SelfBtn.BackgroundColor3 = selfMode and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(150, 50, 50) 
