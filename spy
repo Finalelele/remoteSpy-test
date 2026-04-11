@@ -91,22 +91,85 @@ end
 
 local function addLog(rem, args, isSelf, typeLabel)
     if (typeLabel == "FS" and not spyFS) or (typeLabel == "FC" and not spyFC) or (typeLabel == "IS" and not spyIS) then return end
-    local eventPath = getSafePath(rem)
     
+    local eventPath = getSafePath(rem)
     if ManualBannedPaths[eventPath] then return end
     if controlMode and PathFilter[eventPath] then return end 
 
-    local argStrings = {}
-    for _, v in pairs(args) do pcall(function() table.insert(argStrings, tostring(v)) end) end
-    local finalArgs = table.concat(argStrings, ", ")
-    local logDetails = string.format("Type: %s\nPath: %s\n\nArgs: %s\n\nScript: %s:%s(%s)", typeLabel, eventPath, finalArgs, eventPath, (typeLabel == "IS" and "InvokeServer" or "FireServer"), finalArgs)
+    -- [ИНТЕГРИРОВАННЫЙ ПАРСЕР]
+    local function parseTable(t, d)
+        d = d or 0
+        if d > 4 then return "..." end
+        local tType = type(t)
+        
+        if tType == "string" then 
+            return '"' .. t .. '"'
+        elseif tType == "table" then
+            -- Проверка: является ли таблица простым списком (массивом)
+            local isArray = true
+            local count = 0
+            for k, v in pairs(t) do
+                count = count + 1
+                if type(k) ~= "number" or k ~= count then
+                    isArray = false
+                    break
+                end
+            end
+
+            local res, i = "{", 0
+            for k, v in pairs(t) do
+                i = i + 1
+                if i > 15 then res = res .. "... " break end
+                
+                if isArray then
+                    -- Если это массив, пишем только значение
+                    res = res .. parseTable(v, d + 1) .. ", "
+                else
+                    -- Если это словарь, пишем [ключ] = значение
+                    local key = type(k) == "number" and "["..k.."]" or '["'..tostring(k)..'"]'
+                    res = res .. key .. " = " .. parseTable(v, d + 1) .. ", "
+                end
+            end
+            
+            local result = res:gsub(", $", "") .. "}"
+            return result == "}" and "{}" or result
+        elseif tType == "userdata" then
+            local typeName = typeof(t)
+            if typeName == "CFrame" then return "CFrame.new(" .. tostring(t) .. ")"
+            elseif typeName == "Vector3" then return "Vector3.new(" .. tostring(t) .. ")"
+            elseif typeName == "Color3" then return "Color3.new(" .. tostring(t) .. ")"
+            elseif typeName == "Instance" then return t:GetFullName()
+            end
+            return tostring(t)
+        else
+            return tostring(t)
+        end
+    end
+
+    -- Форматируем аргументы через наш парсер
+    local finalArgs = parseTable(args)
+    -- Убираем внешние скобки {}, если парсер вернул таблицу верхнего уровня, 
+    -- чтобы в методе FireServer(args) не было двойных скобок, если ты этого не хочешь.
+    -- Но для чистоты оставим как есть, так как это идеальный формат.
+
+    local methodName = (typeLabel == "IS" and "InvokeServer" or "FireServer")
+    
+    -- [ОБНОВЛЕННЫЙ LOG DETAILS]
+    local logDetails = string.format(
+        "Type: %s\nPath: %s\nArgs: %s\n\nScript:\n%s:%s(%s)", 
+        typeLabel, 
+        eventPath, 
+        finalArgs, 
+        eventPath, 
+        methodName, 
+        finalArgs
+    )
 
     -- Анти-спам с очисткой дублей
     if not controlMode and antiSpam then
         if (tick() - (AntiSpamCooldowns[eventPath] or 0)) < 0.5 then
             AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
             if AntiSpamCounts[eventPath] >= 4 then
-                -- Очистка: выкидываем из памяти всё, что связано с этим путем
                 local cleanMem = {}
                 for _, m in ipairs(MainMemory) do
                     if not m.fullText:match("Path: " .. eventPath) then table.insert(cleanMem, m) end
@@ -123,8 +186,14 @@ local function addLog(rem, args, isSelf, typeLabel)
     end
 
     local data = {
-        guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf,
-        fullText = logDetails
+        guid = generateGUID(), 
+        name = tostring(rem.Name), 
+        type = typeLabel, 
+        isSelf = isSelf,
+        fullText = logDetails,
+        -- Добавляем чистые данные для кнопок копирования, если UI их использует
+        argsOnly = finalArgs,
+        methodOnly = methodName
     }
     
     if controlMode then PathFilter[eventPath] = true end
