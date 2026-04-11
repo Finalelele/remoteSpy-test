@@ -1,10 +1,3 @@
-О, точно, классика! В версии **v9.9** я случайно опечатался в названии события: вместо `MouseButton1Click` написал `MouseButton1Connect` (такого метода в Roblox не существует), поэтому кнопка **EXECUTE** и ломала весь скрипт.
-
-Я исправил эту опечатку в 125 строке и добавил туда ту самую логику «чистого лога», о которой мы договорились: теперь анти-спам не оставляет гору дублей, а полностью вырезает их из основного списка перед баном.
-
-### KRALLDEN SPY v9.9.1 (Fixed & Clean)
-
-```lua
 -- [[ KRALLDEN SPY v9.9.1 - FIXED EXECUTE & CLEAN LOG ]] --
 
 local player = game:GetService("Players").LocalPlayer
@@ -234,4 +227,3 @@ end
 createTypeBtn("FS SPY: ON", UDim2.new(0, 662, 0, 8), spyFS, Color3.fromRGB(150, 50, 255), "FS")
 createTypeBtn("FC SPY: OFF", UDim2.new(0, 662, 0, 48), spyFC, Color3.fromRGB(50, 150, 255), "FC")
 createTypeBtn("IS SPY: OFF", UDim2.new(0, 662, 0, 88), spyIS, Color3.fromRGB(255, 150, 50), "IS")
-```
