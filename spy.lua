@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.2.3 - FULL SOURCE - PERSISTENT LOG & DYNAMIC UNBLOCK ]] --
+-- [[ KRALLDEN SPY v9.2.5 - FULL SOURCE - FINAL SELF LOGIC ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -74,7 +74,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.2.3"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.2.5"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -153,20 +153,26 @@ local function addLog(rem, args, isSelf, typeLabel)
     for i, v in ipairs(args) do table.insert(argList, parseValue(v)) end
     local finalArgsStr = table.concat(argList, ", ")
     
-    -- ЛОГИКА ОПРЕДЕЛЕНИЯ КЛЮЧА
-    local key_path_only = (isSelf and "SELF_" or "CTRL_") .. eventPath
-    local key_full = (isSelf and "SELF_" or "CTRL_") .. eventPath .. "|" .. finalArgsStr
-    
-    -- Выбираем активный ключ в зависимости от режима кнопки
-    local activeFilterKey = ""
+    -- [[ ЛОГИКА ФИЛЬТРАЦИИ ]]
+    local filterKey = ""
     if isSelf then
-        activeFilterKey = selfMode and key_path_only or key_full
+        if selfMode then
+            -- SELF ON: Баним только по пути
+            filterKey = "SELF_PATH_" .. eventPath
+        else
+            -- SELF OFF: Баним Путь + Аргументы
+            filterKey = "SELF_FULL_" .. eventPath .. "|" .. finalArgsStr
+        end
     else
-        activeFilterKey = controlMode and key_path_only or key_full
+        -- Обычные ивенты (Control)
+        if controlMode then
+            filterKey = "CTRL_PATH_" .. eventPath
+        else
+            filterKey = "CTRL_FULL_" .. eventPath .. "|" .. finalArgsStr
+        end
     end
 
-    -- [[ ФИКС: Если ивент уже забанен старым фильтром, мы его "проталкиваем" ]]
-    if PathFilter[activeFilterKey] then return end
+    if PathFilter[filterKey] then return end
 
     local methodName = (typeLabel == "IS" and "InvokeServer" or "FireServer")
     local logDetails = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, finalArgsStr, eventPath, methodName, finalArgsStr)
@@ -189,7 +195,7 @@ local function addLog(rem, args, isSelf, typeLabel)
     end
 
     local data = { guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf, fullText = logDetails }
-    PathFilter[activeFilterKey] = true
+    PathFilter[filterKey] = true
     table.insert(MainMemory, 1, data)
 end
 
@@ -291,12 +297,17 @@ end)
 
 SelfBtn.MouseButton1Click:Connect(function() 
     selfMode = not selfMode
-    -- [[ ФИКС: Очищаем фильтры SELF, чтобы ивенты ловились по новой логике ]]
+    
+    -- [[ ОЧИСТКА БАН-СПИСКА НАШИХ ИВЕНТОВ ПРИ ПЕРЕКЛЮЧЕНИИ ]]
     local newFilters = {}
-    for k, v in pairs(PathFilter) do if not k:match("^SELF_") then newFilters[k] = v end end
+    for k, v in pairs(PathFilter) do 
+        if not k:match("^SELF_") then 
+            newFilters[k] = v 
+        end 
+    end
     PathFilter = newFilters
     
-    --lastCount = -1 -- Заставляем список обновиться (но не удаляем кнопки)
+    lastCount = -1 -- Обновляем UI
     
     SelfBtn.Text = "SELF: "..(selfMode and "ON" or "OFF")
     SelfBtn.BackgroundColor3 = selfMode and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(150, 50, 50) 
