@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.1.7 - FULL SOURCE - SELF FIX & UI POLISH ]] --
+-- [[ KRALLDEN SPY v9.1.8 - FULL SOURCE - SMART SELF FILTER ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -23,7 +23,6 @@ local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.ra
 
 local RedListScroll, Scroll, Details, ContentFrame
 
--- [[ УНИВЕРСАЛЬНЫЙ ОБНОВИТЕЛЬ ЦВЕТОВ ]] --
 local function refreshSelectionColors()
     for _, v in pairs(Scroll:GetChildren()) do
         if v:IsA("TextButton") then
@@ -75,7 +74,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.1.7"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.1.8"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -119,7 +118,6 @@ local function addLog(rem, args, isSelf, typeLabel)
     
     local eventPath = getSafePath(rem)
     if ManualBannedPaths[eventPath] then return end
-    if controlMode and PathFilter[eventPath] then return end 
 
     local function parseValue(v, d)
         d = d or 0; if d > 4 then return "..." end
@@ -151,8 +149,11 @@ local function addLog(rem, args, isSelf, typeLabel)
     for i, v in ipairs(args) do table.insert(argList, parseValue(v)) end
     local finalArgsStr = table.concat(argList, ", ")
     
+    -- [[ ЛОГИКА ФИЛЬТРАЦИИ SELF / CONTROL ]] --
+    local filterKey = isSelf and eventPath or (eventPath .. "|" .. finalArgsStr)
+    if controlMode and PathFilter[filterKey] then return end
+
     local methodName = (typeLabel == "IS" and "InvokeServer" or "FireServer")
-    -- УЛУЧШЕННЫЙ ВЫВОД (Details разделены пустой строкой)
     local logDetails = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, finalArgsStr, eventPath, methodName, finalArgsStr)
 
     if not controlMode and antiSpam then
@@ -166,18 +167,18 @@ local function addLog(rem, args, isSelf, typeLabel)
                         table.insert(cleanMemory, m)
                     end
                 end
-                MainMemory = cleanMemory
-                currentSelectionGUID = nil -- Сброс выделения
-                lastCount = -1 
-                updateRedListUI(); return 
+                MainMemory = cleanMemory; currentSelectionGUID = nil; lastCount = -1; updateRedListUI(); return 
             end
         else AntiSpamCounts[eventPath] = 0 end
         AntiSpamCooldowns[eventPath] = tick()
     end
 
     local data = { guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf, fullText = logDetails }
-    if controlMode then PathFilter[eventPath] = true end
-    table.insert(MainMemory, 1, data) -- Новые ивенты всегда сверху
+    
+    -- Активируем бан по пути для Self или путь+аргументы для обычных
+    if controlMode then PathFilter[filterKey] = true end
+    
+    table.insert(MainMemory, 1, data)
 end
 
 -- HOOKS
@@ -206,9 +207,7 @@ BlockBtn.MouseButton1Click:Connect(function()
                 if p then
                     ManualBannedPaths[p] = {guid = d.guid, details = "MANUAL BANNED:\n\n" .. d.fullText}
                     local nM = {}; for _, m in ipairs(MainMemory) do if not m.fullText:match("Path: " .. p:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")) then table.insert(nM, m) end end
-                    MainMemory = nM; lastCount = -1; 
-                    currentSelectionGUID = nil -- Исправление "зависшего" цвета
-                    updateRedListUI(); Details.Text = "Banned."
+                    MainMemory = nM; lastCount = -1; currentSelectionGUID = nil; updateRedListUI(); Details.Text = "Banned."
                 end; break
             end
         end
@@ -247,7 +246,6 @@ task.spawn(function()
     end
 end)
 
--- BOTTOM BUTTONS
 local function createBotBtn(text, pos, color)
     local b = Instance.new("TextButton", ContentFrame); b.Size = UDim2.new(0, 220, 0, 58); b.Position = pos; b.BackgroundColor3 = color; b.Text = text; b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 14; b.BorderSizePixel = 0; return b
 end
