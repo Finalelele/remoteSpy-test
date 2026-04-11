@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.2.6 - FULL SOURCE - PERSISTENT FILTER & FEEDBACK ]] --
+-- [[ KRALLDEN SPY v9.2.7 - FULL SOURCE - GLOBAL FILTER LOGIC ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -23,7 +23,6 @@ local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.ra
 
 local RedListScroll, Scroll, Details, ContentFrame
 
--- Функция для визуального отклика кнопок
 local function feedback(button, tempText)
     local oldText = button.Text
     button.Text = tempText
@@ -83,7 +82,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.2.6"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.2.7"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -161,15 +160,16 @@ local function addLog(rem, args, isSelf, typeLabel)
     for i, v in ipairs(args) do table.insert(argList, parseValue(v)) end
     local finalArgsStr = table.concat(argList, ", ")
     
-    -- Фильтр: теперь не дублирует ивенты при смене режима SELF
-    local filterKey = ""
+    -- [[ НОВАЯ ЛОГИКА ФИЛЬТРАЦИИ ]]
+    -- Сначала проверяем, есть ли этот путь в глобальном фильтре для Self
     if isSelf then
-        filterKey = "S_A_" .. eventPath .. "|" .. (selfMode and "MODE_ON" or finalArgsStr)
+        if PathFilter["S_P_" .. eventPath] then return end -- Если уже видели этот путь (Self ON), блочим
+        if not selfMode and PathFilter["S_A_" .. eventPath .. "|" .. finalArgsStr] then return end -- Если Self OFF и аргументы те же, блочим
     else
-        filterKey = (controlMode and "C_P_" or "C_A_") .. eventPath .. (controlMode and "" or "|" .. finalArgsStr)
+        -- Обычная фильтрация для чужих вызовов
+        local otherKey = (controlMode and "C_P_" or "C_A_") .. eventPath .. (controlMode and "" or "|" .. finalArgsStr)
+        if PathFilter[otherKey] then return end
     end
-
-    if PathFilter[filterKey] then return end
 
     local methodName = (typeLabel == "IS" and "InvokeServer" or "FireServer")
     local logDetails = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, finalArgsStr, eventPath, methodName, finalArgsStr)
@@ -187,7 +187,16 @@ local function addLog(rem, args, isSelf, typeLabel)
     end
 
     local data = { guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf, fullText = logDetails }
-    PathFilter[filterKey] = true
+    
+    -- Записываем в фильтр
+    if isSelf then
+        if selfMode then PathFilter["S_P_" .. eventPath] = true 
+        else PathFilter["S_A_" .. eventPath .. "|" .. finalArgsStr] = true end
+    else
+        local otherKey = (controlMode and "C_P_" or "C_A_") .. eventPath .. (controlMode and "" or "|" .. finalArgsStr)
+        PathFilter[otherKey] = true
+    end
+    
     table.insert(MainMemory, 1, data)
 end
 
@@ -203,7 +212,7 @@ end); setreadonly(mt, true)
 
 -- INTERACTIONS
 ControlBtn.MouseButton1Click:Connect(function() 
-    controlMode = not controlMode; -- Удалил очистку PathFilter отсюда
+    controlMode = not controlMode
     ControlBtn.Text = "CONTROL: "..(controlMode and "ON" or "OFF")
     ControlBtn.BackgroundColor3 = controlMode and Color3.fromRGB(150, 50, 255) or Color3.fromRGB(80, 80, 85)
     AntiSpamBtn.Visible = not controlMode; BlockBtn.Visible = not controlMode
@@ -288,7 +297,6 @@ end)
 
 SelfBtn.MouseButton1Click:Connect(function() 
     selfMode = not selfMode
-    -- Удалил очистку PathFilter отсюда (чтобы не дублировалось при переключении)
     lastCount = -1
     SelfBtn.Text = "SELF: "..(selfMode and "ON" or "OFF")
     SelfBtn.BackgroundColor3 = selfMode and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(150, 50, 50) 
