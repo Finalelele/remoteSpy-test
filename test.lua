@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.2.0 - FULL SOURCE - FINAL POLISH ]] --
+-- [[ KRALLDEN SPY v9.2.1 - FULL SOURCE - SELF TOP & DYNAMIC FILTER RESET ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -74,7 +74,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.2.0"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.2.1"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -103,7 +103,6 @@ Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 Details = Instance.new("TextBox", ContentFrame)
 Details.Position = UDim2.new(0, 205, 0, 8); Details.Size = UDim2.new(0, 448, 0, 255); Details.BackgroundColor3 = Color3.fromRGB(10, 10, 12); Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = false; Details.Font = Enum.Font.Code; Details.TextSize = 12; Details.TextXAlignment = 0; Details.TextYAlignment = 0
 
--- ЗАГОЛОВОК BAN LIST
 local BanListTitle = Instance.new("TextLabel", ContentFrame)
 BanListTitle.Size = UDim2.new(0, 150, 0, 20); BanListTitle.Position = UDim2.new(0, 662, 0, 125); BanListTitle.BackgroundTransparency = 1
 BanListTitle.Text = "BAN LIST"; BanListTitle.TextColor3 = Color3.fromRGB(255, 100, 100); BanListTitle.Font = Enum.Font.SourceSansBold; BanListTitle.TextSize = 14
@@ -154,7 +153,6 @@ local function addLog(rem, args, isSelf, typeLabel)
     for i, v in ipairs(args) do table.insert(argList, parseValue(v)) end
     local finalArgsStr = table.concat(argList, ", ")
     
-    -- УМНАЯ ФИЛЬТРАЦИЯ
     local filterKey = ""
     if isSelf then
         filterKey = "SELF_" .. (selfMode and eventPath or (eventPath .. "|" .. finalArgsStr))
@@ -237,12 +235,19 @@ MinBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- RENDER LOOP
+-- RENDER LOOP (С ПРИОРИТЕТОМ SELF ВВЕРХУ)
 task.spawn(function()
     while task.wait(0.5) do
         if not ContentFrame or not ContentFrame.Visible or #MainMemory == lastCount then continue end
         lastCount = #MainMemory; for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-        for i, d in ipairs(MainMemory) do
+        
+        local sortedMemory = {}
+        -- Сначала добавляем Self ивенты
+        for _, d in ipairs(MainMemory) do if d.isSelf then table.insert(sortedMemory, d) end end
+        -- Затем добавляем обычные
+        for _, d in ipairs(MainMemory) do if not d.isSelf then table.insert(sortedMemory, d) end end
+
+        for i, d in ipairs(sortedMemory) do
             local b = Instance.new("TextButton", Scroll); b.Size = UDim2.new(1, -6, 0, 30); b.LayoutOrder = i
             b.Text = string.format("[%s]%s %s", d.type, (d.isSelf and " [S]" or ""), d.name)
             b:SetAttribute("GUID", d.guid); b:SetAttribute("IsSelf", d.isSelf)
@@ -282,7 +287,11 @@ end)
 
 SelfBtn.MouseButton1Click:Connect(function() 
     selfMode = not selfMode
-    -- [[ УБРАЛ fullClear() ЧТОБЫ СПИСОК НЕ ОБНОВЛЯЛСЯ ]] --
+    -- [[ СБРОС ФИЛЬТРОВ ДЛЯ SELF ПРИ ПЕРЕКЛЮЧЕНИИ ]] --
+    local newFilters = {}
+    for k, v in pairs(PathFilter) do if not k:match("^SELF_") then newFilters[k] = v end end
+    PathFilter = newFilters
+    
     SelfBtn.Text = "SELF: "..(selfMode and "ON" or "OFF")
     SelfBtn.BackgroundColor3 = selfMode and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(150, 50, 50) 
 end)
