@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v10.2 - STABLE TABLE LOGIC - CLEAN PARSER ]] --
+-- [ KRALLDEN SPY v10.2 - STABLE TABLE LOGIC - CLEAN PARSER ] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
