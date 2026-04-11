@@ -1,4 +1,4 @@
--- [KRALLDEN SPY v9.2.5 - FULL SOURCE - FINAL SELF LOGIC] --
+-- [[ KRALLDEN SPY v9.2.5 - FULL SOURCE - FINAL SELF LOGIC ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
