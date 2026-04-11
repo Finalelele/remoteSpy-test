@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.2.5 - FULL SOURCE - FINAL SELF LOGIC FIXED ]] --
+-- [[ KRALLDEN SPY v9.2.6 - FULL SOURCE - PERSISTENT FILTER & FEEDBACK ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -22,6 +22,15 @@ local isMin = false
 local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.random(1, 100000)) end
 
 local RedListScroll, Scroll, Details, ContentFrame
+
+-- Функция для визуального отклика кнопок
+local function feedback(button, tempText)
+    local oldText = button.Text
+    button.Text = tempText
+    task.delay(1, function()
+        if button and button.Parent then button.Text = oldText end
+    end)
+end
 
 local function refreshSelectionColors()
     for _, v in pairs(Scroll:GetChildren()) do
@@ -74,7 +83,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.2.5"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.2.6"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -117,7 +126,6 @@ local function getSafePath(obj)
 end
 
 local function addLog(rem, args, isSelf, typeLabel)
-    -- [[ ИСПРАВЛЕННЫЙ КУСОК: Теперь не игнорирует вызов при Self Off ]]
     if (typeLabel == "FS" and not spyFS) or (typeLabel == "FC" and not spyFC) or (typeLabel == "IS" and not spyIS) then return end
     
     local eventPath = getSafePath(rem)
@@ -153,14 +161,10 @@ local function addLog(rem, args, isSelf, typeLabel)
     for i, v in ipairs(args) do table.insert(argList, parseValue(v)) end
     local finalArgsStr = table.concat(argList, ", ")
     
-    -- [[ УЛУЧШЕННАЯ ЛОГИКА ФИЛЬТРАЦИИ ]]
+    -- Фильтр: теперь не дублирует ивенты при смене режима SELF
     local filterKey = ""
     if isSelf then
-        if selfMode then
-            filterKey = "S_P_" .. eventPath -- ON: По пути
-        else
-            filterKey = "S_A_" .. eventPath .. "|" .. finalArgsStr -- OFF: Путь + Аргументы
-        end
+        filterKey = "S_A_" .. eventPath .. "|" .. (selfMode and "MODE_ON" or finalArgsStr)
     else
         filterKey = (controlMode and "C_P_" or "C_A_") .. eventPath .. (controlMode and "" or "|" .. finalArgsStr)
     end
@@ -199,7 +203,7 @@ end); setreadonly(mt, true)
 
 -- INTERACTIONS
 ControlBtn.MouseButton1Click:Connect(function() 
-    controlMode = not controlMode; fullClear()
+    controlMode = not controlMode; -- Удалил очистку PathFilter отсюда
     ControlBtn.Text = "CONTROL: "..(controlMode and "ON" or "OFF")
     ControlBtn.BackgroundColor3 = controlMode and Color3.fromRGB(150, 50, 255) or Color3.fromRGB(80, 80, 85)
     AntiSpamBtn.Visible = not controlMode; BlockBtn.Visible = not controlMode
@@ -260,22 +264,31 @@ local function createBotBtn(text, pos, color)
     local b = Instance.new("TextButton", ContentFrame); b.Size = UDim2.new(0, 220, 0, 58); b.Position = pos; b.BackgroundColor3 = color; b.Text = text; b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 14; b.BorderSizePixel = 0; return b
 end
 
-createBotBtn("COPY ARGS", UDim2.new(0, 205, 0.68, 0), Color3.fromRGB(45, 90, 45)).MouseButton1Click:Connect(function() 
-    local a = Details.Text:match("Args: (.-)\n\nScript"); if a then setclipboard(a) end
+local CopyArgsBtn = createBotBtn("COPY ARGS", UDim2.new(0, 205, 0.68, 0), Color3.fromRGB(45, 90, 45))
+CopyArgsBtn.MouseButton1Click:Connect(function() 
+    local a = Details.Text:match("Args: (.-)\n\nScript"); if a then setclipboard(a); feedback(CopyArgsBtn, "ARGS COPIED!") end
 end)
-createBotBtn("COPY SCRIPT", UDim2.new(0, 205, 0.83, 0), Color3.fromRGB(60, 60, 120)).MouseButton1Click:Connect(function() 
-    local s = Details.Text:match("Script:\n(.*)"); if s then setclipboard(s) end
+
+local CopyScriptBtn = createBotBtn("COPY SCRIPT", UDim2.new(0, 205, 0.83, 0), Color3.fromRGB(60, 60, 120))
+CopyScriptBtn.MouseButton1Click:Connect(function() 
+    local s = Details.Text:match("Script:\n(.*)"); if s then setclipboard(s); feedback(CopyScriptBtn, "SCRIPT COPIED!") end
 end)
-createBotBtn("CLEAR LOG", UDim2.new(0, 432, 0.68, 0), Color3.fromRGB(80, 80, 85)).MouseButton1Click:Connect(fullClear)
-createBotBtn("EXECUTE", UDim2.new(0, 432, 0.83, 0), Color3.fromRGB(120, 60, 60)).MouseButton1Click:Connect(function() 
-    local s = Details.Text:match("Script:\n(.*)"); if s and s ~= "" then local f = loadstring(s); if f then task.spawn(f) end end 
+
+local ClearLogBtn = createBotBtn("CLEAR LOG", UDim2.new(0, 432, 0.68, 0), Color3.fromRGB(80, 80, 85))
+ClearLogBtn.MouseButton1Click:Connect(function()
+    fullClear(); feedback(ClearLogBtn, "LOG CLEARED!")
+end)
+
+local ExecuteBtn = createBotBtn("EXECUTE", UDim2.new(0, 432, 0.83, 0), Color3.fromRGB(120, 60, 60))
+ExecuteBtn.MouseButton1Click:Connect(function() 
+    local s = Details.Text:match("Script:\n(.*)"); if s and s ~= "" then 
+        local f = loadstring(s); if f then task.spawn(f); feedback(ExecuteBtn, "EXECUTED!") end 
+    end 
 end)
 
 SelfBtn.MouseButton1Click:Connect(function() 
     selfMode = not selfMode
-    local newFilters = {}
-    for k, v in pairs(PathFilter) do if not k:match("^S_") then newFilters[k] = v end end
-    PathFilter = newFilters
+    -- Удалил очистку PathFilter отсюда (чтобы не дублировалось при переключении)
     lastCount = -1
     SelfBtn.Text = "SELF: "..(selfMode and "ON" or "OFF")
     SelfBtn.BackgroundColor3 = selfMode and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(150, 50, 50) 
