@@ -2,5 +2,5 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Finalelele/remoteSpy-
 
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Finalelele/remoteSpy-test/refs/heads/main/test"))()
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Finalelele/remoteSpy-test/refs/heads/main/test?t="..tick()))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Finalelele/remoteSpy-test/refs/heads/main/test.lua?t="..tick()))()
 
