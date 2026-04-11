@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.8 - FINAL STABLE ]] --
+-- [[ KRALLDEN SPY v9.9 - CLEAN LOG EDITION ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -18,8 +18,6 @@ local selfMode, controlMode, antiSpam = true, true, false
 local spyFS, spyFC, spyIS = true, false, false
 local currentSelectionGUID, lastCount = nil, 0
 local isMin = false
-
-local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.random(1, 100000)) end
 
 -- UI Elements Ref
 local RedListScroll, Scroll, Details, ContentFrame
@@ -50,7 +48,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 180, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.8"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.9"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -95,25 +93,37 @@ local function addLog(rem, args, isSelf, typeLabel)
     
     if ManualBannedPaths[eventPath] then return end
     if controlMode and PathFilter[eventPath] then return end 
-    
+
+    local argStrings = {}
+    for _, v in pairs(args) do pcall(function() table.insert(argStrings, tostring(v)) end) end
+    local finalArgs = table.concat(argStrings, ", ")
+    local logDetails = string.format("Type: %s\nPath: %s\n\nArgs: %s\n\nScript: %s:%s(%s)", typeLabel, eventPath, finalArgs, eventPath, (typeLabel == "IS" and "InvokeServer" or "FireServer"), finalArgs)
+
+    -- Anti-Spam Logic
     if not controlMode and antiSpam then
         if (tick() - (AntiSpamCooldowns[eventPath] or 0)) < 0.5 then
             AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
             if AntiSpamCounts[eventPath] >= 4 then
-                ManualBannedPaths[eventPath] = {details = "AUTO-BANNED BY ANTI-SPAM\nPath: "..eventPath}
-                updateRedListUI(); return
+                -- Трансфер: Удаляем все копии этого ивента из лога
+                local newMem = {}
+                for _, m in ipairs(MainMemory) do
+                    if not m.fullText:match("Path: " .. eventPath) then table.insert(newMem, m) end
+                end
+                MainMemory = newMem
+                lastCount = -1 -- Форсируем обновление UI
+                
+                -- Добавляем в бан-лист
+                ManualBannedPaths[eventPath] = {details = "AUTO-BANNED BY ANTI-SPAM\n" .. logDetails}
+                updateRedListUI()
+                return 
             end
         else AntiSpamCounts[eventPath] = 0 end
         AntiSpamCooldowns[eventPath] = tick()
     end
 
-    local argStrings = {}
-    for _, v in pairs(args) do pcall(function() table.insert(argStrings, tostring(v)) end) end
-    local finalArgs = table.concat(argStrings, ", ")
-    
     local data = {
         guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf,
-        fullText = string.format("Type: %s\nPath: %s\n\nArgs: %s\n\nScript: %s:%s(%s)", typeLabel, eventPath, finalArgs, eventPath, (typeLabel == "IS" and "InvokeServer" or "FireServer"), finalArgs)
+        fullText = logDetails
     }
     
     if controlMode then PathFilter[eventPath] = true end
@@ -155,16 +165,13 @@ end)
 
 MinBtn.MouseButton1Click:Connect(function()
     isMin = not isMin
+    local currentX = Main.AbsolutePosition.X + Main.AbsoluteSize.X
+    local currentY = Main.AbsolutePosition.Y
     if isMin then
-        local currentX = Main.AbsolutePosition.X + Main.AbsoluteSize.X
-        local currentY = Main.AbsolutePosition.Y
         ContentFrame.Visible = false; ControlBtn.Visible = false; SelfBtn.Visible = false; AntiSpamBtn.Visible = false; BlockBtn.Visible = false
-        -- Сворачиваемся вправо: меняем размер и корректируем позицию, чтобы правый край стоял на месте
         Main:TweenSizeAndPosition(UDim2.new(0, 250, 0, 35), UDim2.new(0, currentX - 250, 0, currentY), "Out", "Quad", 0.15, true)
         MinBtn.Text = "+"
     else
-        local currentX = Main.AbsolutePosition.X + Main.AbsoluteSize.X
-        local currentY = Main.AbsolutePosition.Y
         Main:TweenSizeAndPosition(UDim2.new(0, 820, 0, 440), UDim2.new(0, currentX - 820, 0, currentY), "Out", "Quad", 0.15, true, function()
             ContentFrame.Visible = true; ControlBtn.Visible = true; SelfBtn.Visible = true; if not controlMode then AntiSpamBtn.Visible = true; BlockBtn.Visible = true end
         end)
@@ -175,7 +182,7 @@ end)
 -- RENDER LOOP
 task.spawn(function()
     while task.wait(0.5) do
-        if not ContentFrame.Visible or #MainMemory == lastCount then continue end
+        if not ContentFrame or not ContentFrame.Visible or #MainMemory == lastCount then continue end
         lastCount = #MainMemory; for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
         for i, d in ipairs(MainMemory) do
             local b = Instance.new("TextButton", Scroll); b.Size = UDim2.new(1, -6, 0, 30); b.LayoutOrder = i
@@ -198,7 +205,7 @@ end
 createBotBtn("COPY ARGS", UDim2.new(0, 205, 0.68, 0), Color3.fromRGB(45, 90, 45)).MouseButton1Click:Connect(function() setclipboard(Details.Text:match("Args: (.-)\n\nScript") or "") end)
 createBotBtn("COPY SCRIPT", UDim2.new(0, 205, 0.83, 0), Color3.fromRGB(60, 60, 120)).MouseButton1Click:Connect(function() setclipboard(Details.Text:match("Script: (.*)") or "") end)
 createBotBtn("CLEAR LOG", UDim2.new(0, 432, 0.68, 0), Color3.fromRGB(80, 80, 85)).MouseButton1Click:Connect(fullClear)
-createBotBtn("EXECUTE", UDim2.new(0, 432, 0.83, 0), Color3.fromRGB(120, 60, 60)).MouseButton1Click:Connect(function() local code = Details.Text:match("Script: (.*)"); if code then loadstring(code)() end end)
+createBotBtn("EXECUTE", UDim2.new(0, 432, 0.83, 0), Color3.fromRGB(120, 60, 60)).MouseButton1Connect(function() local code = Details.Text:match("Script: (.*)"); if code then loadstring(code)() end end)
 
 SelfBtn.MouseButton1Click:Connect(function() selfMode = not selfMode; SelfBtn.Text = "SELF: "..(selfMode and "ON" or "OFF"); SelfBtn.BackgroundColor3 = selfMode and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(150, 50, 50) end)
 AntiSpamBtn.MouseButton1Click:Connect(function() antiSpam = not antiSpam; AntiSpamBtn.Text = "ANTI-SPAM: "..(antiSpam and "ON" or "OFF"); AntiSpamBtn.BackgroundColor3 = antiSpam and Color3.fromRGB(180, 150, 40) or Color3.fromRGB(80, 80, 85) end)
