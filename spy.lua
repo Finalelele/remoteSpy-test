@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.3.3 - FULL SOURCE - SYNC & ANTI-SPAM FIX ]] --
+-- [[ KRALLDEN SPY v9.3.4 - FULL SOURCE - ANTI-SPAM & UNBAN FIX ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -23,7 +23,6 @@ local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.ra
 
 local RedListScroll, Scroll, Details, ContentFrame
 
--- Feedback system (protection from double-click sticking)
 local activeFeedbacks = {}
 local function feedback(button, tempText)
     if activeFeedbacks[button] then return end
@@ -61,6 +60,7 @@ local function updateRedListUI()
         local b = Instance.new("TextButton", RedListScroll)
         b.Size = UDim2.new(1, -6, 0, 25)
         b:SetAttribute("GUID", data.guid)
+        b:SetAttribute("Path", path)
         b.BackgroundColor3 = (currentSelectionGUID == data.guid) and Color3.fromRGB(100, 50, 200) or Color3.fromRGB(100, 35, 35)
         b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 10; b.BorderSizePixel = 0
         b.Text = " [X] " .. (path:match("[^%.%[%]]+$") or path)
@@ -89,7 +89,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.3.3"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.3.4"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -184,13 +184,13 @@ local function addLog(rem, args, isSelf, typeLabel)
     local methodName = (typeLabel == "IS" and "InvokeServer" or "FireServer")
     local logDetails = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, finalArgsStr, eventPath, methodName, finalArgsStr)
 
-    -- ANTI-SPAM LOGIC
+    -- ANTI-SPAM (Logic from v9.3.0/9.3.1 restored)
     if not isSelf and not controlMode and antiSpam then
         if (tick() - (AntiSpamCooldowns[eventPath] or 0)) < 0.4 then
             AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
             if AntiSpamCounts[eventPath] >= 4 then
                 ManualBannedPaths[eventPath] = {guid = generateGUID(), details = "AUTO-BANNED BY ANTI-SPAM\n\n" .. logDetails}
-                -- CLEANUP: Remove all entries of this event from log
+                -- Clean memory of this path
                 local nM = {}
                 for _, m in ipairs(MainMemory) do 
                     if not m.fullText:match("Path: " .. eventPath:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")) then 
@@ -225,35 +225,61 @@ ControlBtn.MouseButton1Click:Connect(function()
     AntiSpamBtn.Visible = not controlMode; BlockBtn.Visible = not controlMode
 end)
 
--- SMART DELETE (Manual debug/cleanup)
+-- SMART DELETE SINGLE BUTTON (Fixed logic for BanList removal)
 DelBtn.MouseButton1Click:Connect(function()
     if currentSelectionGUID then
         local targetData = nil
-        local nM = {}
-        for _, m in ipairs(MainMemory) do
-            if m.guid == currentSelectionGUID then targetData = m else table.insert(nM, m) end
+        local foundInBanList = false
+        
+        -- 1. Check if it's a Ban List button
+        for path, data in pairs(ManualBannedPaths) do
+            if data.guid == currentSelectionGUID then
+                targetData = {path = path, guid = data.guid, isBanList = true}
+                foundInBanList = true
+                break
+            end
+        end
+        
+        -- 2. Check if it's a Main Log button
+        if not foundInBanList then
+            local nM = {}
+            for _, m in ipairs(MainMemory) do
+                if m.guid == currentSelectionGUID then targetData = m else table.insert(nM, m) end
+            end
+            if targetData then MainMemory = nM end
         end
         
         if targetData then
-            MainMemory = nM
-            local pathStillExists, argsStillExists = false, false
-            for _, m in ipairs(MainMemory) do
-                if m.path == targetData.path and m.isSelf == targetData.isSelf then
-                    pathStillExists = true
-                    if m.argsStr == targetData.argsStr then argsStillExists = true end
+            if foundInBanList then
+                -- Removal from Ban List
+                ManualBannedPaths[targetData.path] = nil
+                updateRedListUI()
+                feedback(DelBtn, "UNBANNED")
+            else
+                -- Normal Log removal with filter check
+                local pathStillExists, argsStillExists = false, false
+                for _, m in ipairs(MainMemory) do
+                    if m.path == targetData.path and m.isSelf == targetData.isSelf then
+                        pathStillExists = true
+                        if m.argsStr == targetData.argsStr then argsStillExists = true end
+                    end
                 end
+                
+                if targetData.isSelf then
+                    if not pathStillExists then PathFilter["S_PATH_" .. targetData.path] = nil end
+                    if not argsStillExists then PathFilter["S_ARGS_" .. targetData.path .. "|" .. targetData.argsStr] = nil end
+                else
+                    local cKeyP = "C_P_" .. targetData.path
+                    local cKeyA = "C_A_" .. targetData.path .. "|" .. targetData.argsStr
+                    if not pathStillExists then PathFilter[cKeyP] = nil end
+                    if not argsStillExists then PathFilter[cKeyA] = nil end
+                end
+                feedback(DelBtn, "DELETED")
             end
             
-            -- Free from filter if it was the last button
-            if targetData.isSelf then
-                if not pathStillExists then PathFilter["S_PATH_" .. targetData.path] = nil end
-                if not argsStillExists then PathFilter["S_ARGS_" .. targetData.path .. "|" .. targetData.argsStr] = nil end
-            else
-                if not pathStillExists then PathFilter["C_P_" .. targetData.path] = nil end
-                if not argsStillExists then PathFilter["C_A_" .. targetData.path .. "|" .. targetData.argsStr] = nil end
-            end
-
-            lastCount = -1; currentSelectionGUID = nil; Details.Text = ""; feedback(DelBtn, "DELETED")
+            lastCount = -1 
+            currentSelectionGUID = nil
+            Details.Text = ""
         end
     end
 end)
@@ -267,10 +293,10 @@ BlockBtn.MouseButton1Click:Connect(function()
                     ManualBannedPaths[p] = {guid = d.guid, details = "MANUAL BANNED:\n\n" .. d.fullText}
                     local nM = {}
                     for _, m in ipairs(MainMemory) do 
-                        local isTarget = m.path == p
-                        if not (isTarget and not m.isSelf) then table.insert(nM, m) end 
+                        if not (m.path == p and not m.isSelf) then table.insert(nM, m) end 
                     end
-                    MainMemory = nM; lastCount = -1; currentSelectionGUID = nil; updateRedListUI(); Details.Text = "Banned."; feedback(BlockBtn, "BANNED")
+                    MainMemory = nM; lastCount = -1; currentSelectionGUID = nil; updateRedListUI(); Details.Text = "Banned."
+                    feedback(BlockBtn, "BANNED")
                 end; break
             end
         end
