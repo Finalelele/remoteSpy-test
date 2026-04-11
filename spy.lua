@@ -1,8 +1,9 @@
--- [[ KRALLDEN SPY v10.3 - FINAL TABLE FIX ]] --
+-- [[ KRALLDEN SPY v10.4 - ULTIMATE STABILITY FIX ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- Очистка старой версии перед запуском
 if playerGui:FindFirstChild("KralldenSpyUI") then playerGui.KralldenSpyUI:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui", playerGui)
@@ -60,7 +61,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v10.3"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v10.4"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -138,6 +139,7 @@ local function addLog(rem, args, isSelf, typeLabel)
     local methodName = (typeLabel == "IS" and "InvokeServer" or "FireServer")
     local logDetails = string.format("Type: %s\nPath: %s\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, finalArgsStr, eventPath, methodName, finalArgsStr)
 
+    -- ANTI-SPAM LOGIC
     if not controlMode and antiSpam then
         if (tick() - (AntiSpamCooldowns[eventPath] or 0)) < 0.4 then
             AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
@@ -145,7 +147,7 @@ local function addLog(rem, args, isSelf, typeLabel)
                 ManualBannedPaths[eventPath] = {guid = generateGUID(), details = "AUTO-BANNED\n" .. logDetails}
                 local cleanMemory = {}
                 for _, m in ipairs(MainMemory) do
-                    if not m.fullText:match("Path: " .. eventPath:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")) then table.insert(cleanMemory, m) end
+                    if not m.fullText:match("Path: " .. eventPath:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")) then cleanMemory[#cleanMemory+1] = m end
                 end
                 MainMemory = cleanMemory; lastCount = -1; updateRedListUI(); return 
             end
@@ -156,10 +158,15 @@ local function addLog(rem, args, isSelf, typeLabel)
     local data = { guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf, fullText = logDetails }
     if controlMode then PathFilter[eventPath] = true end
     
-    -- FIXED v10.3: Explicitly separate insert logic to prevent 'invalid argument #2'
+    -- FIXED LOGIC v10.4: Replaced table.insert with direct indexing to prevent 'number expected' errors
     if isSelf then 
-        table.insert(MainMemory, 1, data) 
+        -- Сдвиг существующих элементов вниз, чтобы вставить 'Self' в начало (индекс 1)
+        for i = #MainMemory, 1, -1 do
+            MainMemory[i + 1] = MainMemory[i]
+        end
+        MainMemory[1] = data
     else 
+        -- Обычное добавление в конец без использования table.insert
         MainMemory[#MainMemory + 1] = data
     end
 end
@@ -174,7 +181,7 @@ mt.__namecall = newcclosure(function(self, ...)
     return old(self, ...)
 end); setreadonly(mt, true)
 
--- UI Interaction
+-- UI CONTROLS
 ControlBtn.MouseButton1Click:Connect(function() 
     controlMode = not controlMode; fullClear()
     ControlBtn.Text = "CONTROL: "..(controlMode and "ON" or "OFF")
@@ -189,7 +196,7 @@ BlockBtn.MouseButton1Click:Connect(function()
                 local p = d.fullText:match("Path: (.-)\n")
                 if p then
                     ManualBannedPaths[p] = {guid = d.guid, details = "MANUAL BANNED:\n" .. d.fullText}
-                    local nM = {}; for _, m in ipairs(MainMemory) do if not m.fullText:match("Path: " .. p:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")) then table.insert(nM, m) end end
+                    local nM = {}; for _, m in ipairs(MainMemory) do if not m.fullText:match("Path: " .. p:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")) then nM[#nM+1] = m end end
                     MainMemory = nM; lastCount = -1; updateRedListUI(); Details.Text = "Banned."
                 end; break
             end
@@ -210,6 +217,7 @@ MinBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- RENDER LOOP
 task.spawn(function()
     while task.wait(0.5) do
         if not ContentFrame or not ContentFrame.Visible or #MainMemory == lastCount then continue end
@@ -225,6 +233,7 @@ task.spawn(function()
     end
 end)
 
+-- LOWER BUTTONS
 local function createBotBtn(text, pos, color)
     local b = Instance.new("TextButton", ContentFrame); b.Size = UDim2.new(0, 220, 0, 58); b.Position = pos; b.BackgroundColor3 = color; b.Text = text; b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 14; b.BorderSizePixel = 0; return b
 end
@@ -259,6 +268,7 @@ AntiSpamBtn.MouseButton1Click:Connect(function()
     AntiSpamBtn.BackgroundColor3 = antiSpam and Color3.fromRGB(180, 150, 40) or Color3.fromRGB(80, 80, 85) 
 end)
 
+-- SPY TYPES TOGGLES
 local function createTypeBtn(text, pos, state, color, varName)
     local b = Instance.new("TextButton", ContentFrame); b.Size = UDim2.new(0, 150, 0, 35); b.Position = pos; b.BackgroundColor3 = state and color or Color3.fromRGB(40, 40, 45); b.Text = text; b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 12; b.BorderSizePixel = 0
     b.MouseButton1Click:Connect(function()
