@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v10.5 - FULL RECOVERY ]] --
+-- [KRALLDEN SPY v10.5 - FULL RECOVERY] --
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
