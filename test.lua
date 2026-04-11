@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.1.5 - FULL SOURCE - FIXED ANTI-SPAM & SELECTION ]] --
+-- [[ KRALLDEN SPY v10.2 - STABLE TABLE LOGIC ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -23,19 +23,12 @@ local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.ra
 
 local RedListScroll, Scroll, Details, ContentFrame
 
--- [[ УНИВЕРСАЛЬНЫЙ ОБНОВИТЕЛЬ ЦВЕТОВ ВЫДЕЛЕНИЯ ]] --
 local function refreshSelectionColors()
     for _, v in pairs(Scroll:GetChildren()) do
         if v:IsA("TextButton") then
             local isSelected = (v:GetAttribute("GUID") == currentSelectionGUID)
             local isSelf = v:GetAttribute("IsSelf")
             v.BackgroundColor3 = isSelected and Color3.fromRGB(100, 50, 200) or (isSelf and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(40, 40, 45))
-        end
-    end
-    for _, v in pairs(RedListScroll:GetChildren()) do
-        if v:IsA("TextButton") then
-            local isSelected = (v:GetAttribute("GUID") == currentSelectionGUID)
-            v.BackgroundColor3 = isSelected and Color3.fromRGB(100, 50, 200) or Color3.fromRGB(100, 35, 35)
         end
     end
 end
@@ -45,24 +38,17 @@ local function updateRedListUI()
     for _, v in pairs(RedListScroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     for path, data in pairs(ManualBannedPaths) do
         local b = Instance.new("TextButton", RedListScroll)
-        b.Size = UDim2.new(1, -6, 0, 25)
-        b:SetAttribute("GUID", data.guid)
+        b.Size = UDim2.new(1, -6, 0, 25); b:SetAttribute("GUID", data.guid)
         b.BackgroundColor3 = (currentSelectionGUID == data.guid) and Color3.fromRGB(100, 50, 200) or Color3.fromRGB(100, 35, 35)
         b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 10; b.BorderSizePixel = 0
         b.Text = " [X] " .. (path:match("[^%.%[%]]+$") or path)
-        
-        b.MouseButton1Click:Connect(function() 
-            currentSelectionGUID = data.guid
-            Details.Text = data.details 
-            refreshSelectionColors()
-        end)
+        b.MouseButton1Click:Connect(function() currentSelectionGUID = data.guid; Details.Text = data.details; refreshSelectionColors() end)
     end
 end
 
 local function fullClear()
     MainMemory, PathFilter, lastCount, currentSelectionGUID = {}, {}, 0, nil
-    ManualBannedPaths = {}
-    AntiSpamCooldowns, AntiSpamCounts = {}, {}
+    ManualBannedPaths = {}; AntiSpamCooldowns = {}; AntiSpamCounts = {}
     if Details then Details.Text = "" end
     if Scroll then for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end end
     updateRedListUI()
@@ -74,7 +60,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.1.5"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v10.2"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -120,52 +106,48 @@ local function addLog(rem, args, isSelf, typeLabel)
     if ManualBannedPaths[eventPath] then return end
     if controlMode and PathFilter[eventPath] then return end 
 
-    local function parseTable(t, d)
+    local function parseValue(v, d)
         d = d or 0; if d > 4 then return "..." end
-        local tType = type(t)
-        if tType == "string" then return '"' .. t .. '"'
-        elseif tType == "table" then
-            local isArray = true; local count = 0
-            for k, v in pairs(t) do count = count + 1; if type(k) ~= "number" or k ~= count then isArray = false break end end
+        local t = type(v)
+        if t == "string" then return '"' .. v .. '"'
+        elseif t == "table" then
+            local isArray, count = true, 0
+            for k, val in pairs(v) do count = count + 1; if type(k) ~= "number" or k ~= count then isArray = false break end end
             local res, i = "{", 0
-            for k, v in pairs(t) do i = i + 1; if i > 15 then res = res .. "... " break end
-                if isArray then res = res .. parseTable(v, d + 1) .. ", "
+            for k, val in pairs(v) do i = i + 1; if i > 15 then res = res .. "... " break end
+                if isArray then res = res .. parseValue(val, d + 1) .. ", "
                 else local key = type(k) == "number" and "["..k.."]" or '["'..tostring(k)..'"]'
-                    res = res .. key .. " = " .. parseTable(v, d + 1) .. ", "
+                    res = res .. key .. " = " .. parseValue(val, d + 1) .. ", "
                 end
             end
-            local result = res:gsub(", $", "") .. "}"
-            return result == "}" and "{}" or result
-        elseif tType == "userdata" then
-            local typeName = typeof(t)
-            if typeName == "CFrame" then return "CFrame.new(" .. tostring(t) .. ")"
-            elseif typeName == "Vector3" then return "Vector3.new(" .. tostring(t) .. ")"
-            elseif typeName == "Color3" then return "Color3.new(" .. tostring(t) .. ")"
-            elseif typeName == "Instance" then return getSafePath(t) end
-            return tostring(t)
-        else return tostring(t) end
+            return (res:gsub(", $", "") .. "}"):gsub("^{}$", "{}")
+        elseif t == "userdata" then
+            local tn = typeof(v)
+            if tn == "CFrame" then return "CFrame.new(" .. tostring(v) .. ")"
+            elseif tn == "Vector3" then return "Vector3.new(" .. tostring(v) .. ")"
+            elseif tn == "Color3" then return "Color3.new(" .. tostring(v) .. ")"
+            elseif tn == "Instance" then return getSafePath(v) end
+            return tostring(v)
+        else return tostring(v) end
     end
 
-    local finalArgs = parseTable(args)
+    local argList = {}
+    for i, v in ipairs(args) do table.insert(argList, parseValue(v)) end
+    local finalArgsStr = table.concat(argList, ", ")
+    
     local methodName = (typeLabel == "IS" and "InvokeServer" or "FireServer")
-    local logDetails = string.format("Type: %s\nPath: %s\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, finalArgs, eventPath, methodName, finalArgs)
+    local logDetails = string.format("Type: %s\nPath: %s\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, finalArgsStr, eventPath, methodName, finalArgsStr)
 
-    -- [[ УЛУЧШЕННЫЙ ANTI-SPAM: УДАЛЕНИЕ ХВОСТОВ ]] --
     if not controlMode and antiSpam then
         if (tick() - (AntiSpamCooldowns[eventPath] or 0)) < 0.4 then
             AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
             if AntiSpamCounts[eventPath] >= 4 then
-                ManualBannedPaths[eventPath] = {guid = generateGUID(), details = "AUTO-BANNED BY ANTI-SPAM\n" .. logDetails}
-                -- Полная зачистка всех вхождений этого ивента из памяти
+                ManualBannedPaths[eventPath] = {guid = generateGUID(), details = "AUTO-BANNED\n" .. logDetails}
                 local cleanMemory = {}
                 for _, m in ipairs(MainMemory) do
-                    if not m.fullText:match("Path: " .. eventPath:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")) then
-                        table.insert(cleanMemory, m)
-                    end
+                    if not m.fullText:match("Path: " .. eventPath:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")) then table.insert(cleanMemory, m) end
                 end
-                MainMemory = cleanMemory
-                lastCount = -1 -- Триггер перерисовки
-                updateRedListUI(); return 
+                MainMemory = cleanMemory; lastCount = -1; updateRedListUI(); return 
             end
         else AntiSpamCounts[eventPath] = 0 end
         AntiSpamCooldowns[eventPath] = tick()
@@ -173,7 +155,13 @@ local function addLog(rem, args, isSelf, typeLabel)
 
     local data = { guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf, fullText = logDetails }
     if controlMode then PathFilter[eventPath] = true end
-    if isSelf then table.insert(MainMemory, 1, data) else table.insert(MainMemory, data) end
+    
+    -- FIXED TABLE LOGIC v10.2
+    if isSelf then 
+        table.insert(MainMemory, 1, data) 
+    else 
+        table.insert(MainMemory, data) 
+    end
 end
 
 -- HOOKS
@@ -186,7 +174,7 @@ mt.__namecall = newcclosure(function(self, ...)
     return old(self, ...)
 end); setreadonly(mt, true)
 
--- INTERACTION
+-- UI LOGIC
 ControlBtn.MouseButton1Click:Connect(function() 
     controlMode = not controlMode; fullClear()
     ControlBtn.Text = "CONTROL: "..(controlMode and "ON" or "OFF")
@@ -222,7 +210,6 @@ MinBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- RENDER LOOP
 task.spawn(function()
     while task.wait(0.5) do
         if not ContentFrame or not ContentFrame.Visible or #MainMemory == lastCount then continue end
@@ -233,15 +220,11 @@ task.spawn(function()
             b:SetAttribute("GUID", d.guid); b:SetAttribute("IsSelf", d.isSelf)
             b.BackgroundColor3 = (currentSelectionGUID == d.guid) and Color3.fromRGB(100, 50, 200) or (d.isSelf and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(40, 40, 45))
             b.TextColor3 = Color3.new(1,1,1); b.BorderSizePixel = 0
-            b.MouseButton1Click:Connect(function()
-                currentSelectionGUID = d.guid; Details.Text = d.fullText
-                refreshSelectionColors()
-            end)
+            b.MouseButton1Click:Connect(function() currentSelectionGUID = d.guid; Details.Text = d.fullText; refreshSelectionColors() end)
         end
     end
 end)
 
--- BOTTOM BUTTONS
 local function createBotBtn(text, pos, color)
     local b = Instance.new("TextButton", ContentFrame); b.Size = UDim2.new(0, 220, 0, 58); b.Position = pos; b.BackgroundColor3 = color; b.Text = text; b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 14; b.BorderSizePixel = 0; return b
 end
