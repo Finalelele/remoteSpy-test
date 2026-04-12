@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.3.7 - FULL SOURCE - EDITABLE & DUAL CLEAR ]] --
+-- [[ KRALLDEN SPY v9.3.8 - FULL SOURCE - BANLIST OVERRIDE FIX ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -89,7 +89,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.3.7"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.3.8"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -135,7 +135,8 @@ local function addLog(rem, args, isSelf, typeLabel)
     if (typeLabel == "FS" and not spyFS) or (typeLabel == "FC" and not spyFC) or (typeLabel == "IS" and not spyIS) then return end
     
     local eventPath = getSafePath(rem)
-    if ManualBannedPaths[eventPath] then return end
+    -- FIX: Если это SELF вызов, мы ИГНОРИРУЕМ бан-лист и добавляем в лог
+    if not isSelf and ManualBannedPaths[eventPath] then return end
 
     local function parseValue(v, d)
         d = d or 0; if d > 4 then return "..." end
@@ -175,13 +176,8 @@ local function addLog(rem, args, isSelf, typeLabel)
                     alreadyExists = true; break
                 end
             else
-                if controlMode then
-                    alreadyExists = true; break
-                else
-                    if m.argsStr == finalArgsStr then
-                        alreadyExists = true; break
-                    end
-                end
+                if controlMode then alreadyExists = true; break
+                else if m.argsStr == finalArgsStr then alreadyExists = true; break end end
             end
         end
     end
@@ -251,9 +247,7 @@ DelBtn.MouseButton1Click:Connect(function()
             if foundInBanList then
                 ManualBannedPaths[targetData.path] = nil
                 updateRedListUI(); feedback(DelBtn, "UNBANNED")
-            else
-                feedback(DelBtn, "DELETED")
-            end
+            else feedback(DelBtn, "DELETED") end
             lastCount = -1; currentSelectionGUID = nil; Details.Text = ""
         end
     end
@@ -349,10 +343,7 @@ ExecuteBtn.MouseButton1Click:Connect(function()
     local s = Details.Text:match("Script:\n(.*)") or Details.Text
     if s and s ~= "" then 
         local f = loadstring(s); 
-        if f then 
-            task.spawn(f); 
-            feedback(ExecuteBtn, "EXECUTED!") 
-        end 
+        if f then task.spawn(f); feedback(ExecuteBtn, "EXECUTED!") end 
     end 
 end)
 
