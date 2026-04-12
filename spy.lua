@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.3.4 - FULL SOURCE - ANTI-SPAM & UNBAN FIX ]] --
+-- [[ KRALLDEN SPY v9.3.5 - FULL SOURCE - SYNC FILTER FIX ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -89,7 +89,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.3.4"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.3.5"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -167,35 +167,45 @@ local function addLog(rem, args, isSelf, typeLabel)
     for i, v in ipairs(args) do table.insert(argList, parseValue(v)) end
     local finalArgsStr = table.concat(argList, ", ")
     
-    -- DUAL-CHECK SELF FILTER
-    if isSelf then
-        local keyPathOnly = "S_PATH_" .. eventPath
-        local keyPathArgs = "S_ARGS_" .. eventPath .. "|" .. finalArgsStr
-        if selfMode and PathFilter[keyPathOnly] then return end
-        if not selfMode and PathFilter[keyPathArgs] then return end
-        PathFilter[keyPathOnly] = true
-        PathFilter[keyPathArgs] = true
-    else
-        local otherKey = (controlMode and "C_P_" or "C_A_") .. eventPath .. (controlMode and "" or "|" .. finalArgsStr)
-        if PathFilter[otherKey] then return end
-        PathFilter[otherKey] = true
+    -- [[ FIX: DINAMIC DUPLICATE CHECK ]] --
+    -- Проверяем наличие кнопки ПРЯМО СЕЙЧАС в MainMemory в зависимости от режима
+    local alreadyExists = false
+    for _, m in ipairs(MainMemory) do
+        if m.path == eventPath and m.isSelf == isSelf then
+            if isSelf then
+                -- Для Self всегда проверяем и путь и аргументы (как и было)
+                if (selfMode and true) or (not selfMode and m.argsStr == finalArgsStr) then
+                    alreadyExists = true; break
+                end
+            else
+                -- Для внешних ивентов логика как при DEL BTN:
+                if controlMode then
+                    -- Если контроль ВКЛ: ивент считается дубликатом, если путь совпадает
+                    alreadyExists = true; break
+                else
+                    -- Если контроль ВЫКЛ: дубликат только если и путь И аргументы совпадают
+                    if m.argsStr == finalArgsStr then
+                        alreadyExists = true; break
+                    end
+                end
+            end
+        end
     end
+
+    if alreadyExists then return end
 
     local methodName = (typeLabel == "IS" and "InvokeServer" or "FireServer")
     local logDetails = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, finalArgsStr, eventPath, methodName, finalArgsStr)
 
-    -- ANTI-SPAM (Logic from v9.3.0/9.3.1 restored)
+    -- ANTI-SPAM
     if not isSelf and not controlMode and antiSpam then
         if (tick() - (AntiSpamCooldowns[eventPath] or 0)) < 0.4 then
             AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
             if AntiSpamCounts[eventPath] >= 4 then
                 ManualBannedPaths[eventPath] = {guid = generateGUID(), details = "AUTO-BANNED BY ANTI-SPAM\n\n" .. logDetails}
-                -- Clean memory of this path
                 local nM = {}
                 for _, m in ipairs(MainMemory) do 
-                    if not m.fullText:match("Path: " .. eventPath:gsub("[%[%]%(%)%.%+%-%*%?%^%$%%]", "%%%1")) then 
-                        table.insert(nM, m) 
-                    end 
+                    if not (m.path == eventPath and not m.isSelf) then table.insert(nM, m) end 
                 end
                 MainMemory = nM; lastCount = -1; currentSelectionGUID = nil; updateRedListUI(); return 
             end
@@ -223,24 +233,22 @@ ControlBtn.MouseButton1Click:Connect(function()
     ControlBtn.Text = "CONTROL: "..(controlMode and "ON" or "OFF")
     ControlBtn.BackgroundColor3 = controlMode and Color3.fromRGB(150, 50, 255) or Color3.fromRGB(80, 80, 85)
     AntiSpamBtn.Visible = not controlMode; BlockBtn.Visible = not controlMode
+    lastCount = -1 -- Форсим перерендер при смене режима для корректной фильтрации новых ивентов
 end)
 
--- SMART DELETE SINGLE BUTTON (Fixed logic for BanList removal)
+-- SMART DELETE SINGLE BUTTON
 DelBtn.MouseButton1Click:Connect(function()
     if currentSelectionGUID then
         local targetData = nil
         local foundInBanList = false
         
-        -- 1. Check if it's a Ban List button
         for path, data in pairs(ManualBannedPaths) do
             if data.guid == currentSelectionGUID then
                 targetData = {path = path, guid = data.guid, isBanList = true}
-                foundInBanList = true
-                break
+                foundInBanList = true; break
             end
         end
         
-        -- 2. Check if it's a Main Log button
         if not foundInBanList then
             local nM = {}
             for _, m in ipairs(MainMemory) do
@@ -251,35 +259,12 @@ DelBtn.MouseButton1Click:Connect(function()
         
         if targetData then
             if foundInBanList then
-                -- Removal from Ban List
                 ManualBannedPaths[targetData.path] = nil
-                updateRedListUI()
-                feedback(DelBtn, "UNBANNED")
+                updateRedListUI(); feedback(DelBtn, "UNBANNED")
             else
-                -- Normal Log removal with filter check
-                local pathStillExists, argsStillExists = false, false
-                for _, m in ipairs(MainMemory) do
-                    if m.path == targetData.path and m.isSelf == targetData.isSelf then
-                        pathStillExists = true
-                        if m.argsStr == targetData.argsStr then argsStillExists = true end
-                    end
-                end
-                
-                if targetData.isSelf then
-                    if not pathStillExists then PathFilter["S_PATH_" .. targetData.path] = nil end
-                    if not argsStillExists then PathFilter["S_ARGS_" .. targetData.path .. "|" .. targetData.argsStr] = nil end
-                else
-                    local cKeyP = "C_P_" .. targetData.path
-                    local cKeyA = "C_A_" .. targetData.path .. "|" .. targetData.argsStr
-                    if not pathStillExists then PathFilter[cKeyP] = nil end
-                    if not argsStillExists then PathFilter[cKeyA] = nil end
-                end
                 feedback(DelBtn, "DELETED")
             end
-            
-            lastCount = -1 
-            currentSelectionGUID = nil
-            Details.Text = ""
+            lastCount = -1; currentSelectionGUID = nil; Details.Text = ""
         end
     end
 end)
