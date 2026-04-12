@@ -100,7 +100,7 @@ local function createHeaderBtn(text, offset, color, sizeX)
     return b
 end
 
-local ControlBtn = createHeaderBtn("CONTROL: ON", -150, Color3.fromRGB(150, 50, 255))
+local ControlBtn = createHeaderBtn("CONTROL: ON", -150, Color3.fromRGB(0, 170, 190))
 local SelfBtn = createHeaderBtn("SELF: ON", -235, Color3.fromRGB(45, 90, 45), 80)
 local DelBtn = createHeaderBtn("DEL BTN", -310, Color3.fromRGB(200, 100, 0), 70)
 local AntiSpamBtn = createHeaderBtn("ANTI-SPAM: ON", -420, Color3.fromRGB(180, 150, 40))
@@ -135,7 +135,6 @@ local function addLog(rem, args, isSelf, typeLabel)
     if (typeLabel == "FS" and not spyFS) or (typeLabel == "FC" and not spyFC) or (typeLabel == "IS" and not spyIS) then return end
     
     local eventPath = getSafePath(rem)
-    -- FIX: Если это SELF вызов, мы ИГНОРИРУЕМ бан-лист и добавляем в лог
     if not isSelf and ManualBannedPaths[eventPath] then return end
 
     local function parseValue(v, d)
@@ -221,7 +220,7 @@ end); setreadonly(mt, true)
 ControlBtn.MouseButton1Click:Connect(function() 
     controlMode = not controlMode
     ControlBtn.Text = "CONTROL: "..(controlMode and "ON" or "OFF")
-    ControlBtn.BackgroundColor3 = controlMode and Color3.fromRGB(150, 50, 255) or Color3.fromRGB(80, 80, 85)
+    ControlBtn.BackgroundColor3 = controlMode and Color3.fromRGB(0, 170, 190) or Color3.fromRGB(80, 80, 85)
     AntiSpamBtn.Visible = not controlMode; BlockBtn.Visible = not controlMode
     lastCount = -1 
 end)
@@ -366,6 +365,6 @@ local function createTypeBtn(text, pos, state, color, varName)
         b.Text = varName.." SPY: "..(ns and "ON" or "OFF"); b.BackgroundColor3 = ns and color or Color3.fromRGB(40, 40, 45)
     end)
 end
-createTypeBtn("FS SPY: ON", UDim2.new(0, 662, 0, 8), spyFS, Color3.fromRGB(150, 50, 255), "FS")
+createTypeBtn("FS SPY: ON", UDim2.new(0, 662, 0, 8), spyFS, Color3.fromRGB(130, 70, 220), "FS")
 createTypeBtn("FC SPY: OFF", UDim2.new(0, 662, 0, 48), spyFC, Color3.fromRGB(50, 150, 255), "FC")
 createTypeBtn("IS SPY: OFF", UDim2.new(0, 662, 0, 88), spyIS, Color3.fromRGB(255, 150, 50), "IS")
