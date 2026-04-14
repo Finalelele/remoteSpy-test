@@ -1,17 +1,19 @@
--- [[ KRALLDEN SPY v9.5.6 - FULL RESTORATION + ADVANCED BUFFER ]] --
+-- [[ KRALLDEN SPY v9.4.8 - CLEAN VERSION WITH ANTI-HIDE ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
 if playerGui:FindFirstChild("KralldenSpyUI") then playerGui.KralldenSpyUI:Destroy() end
 
-local ScreenGui = Instance.new("ScreenGui", playerGui)
-ScreenGui.Name = "KralldenSpyUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 2147483647
+local targetParent = (gethui and gethui()) or (game:GetService("CoreGui"):FindFirstChild("RobloxGui")) or playerGui
+local ScreenGui = Instance.new("ScreenGui", targetParent)
+ScreenGui.Name = "KralldenSpyUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 10; ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- [[ ФИКС: АВТОВКЛЮЧЕНИЕ ПРИ ПОПЫТКЕ СКРЫТЬ ]] --
-ScreenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
-    if ScreenGui.Enabled == false then
-        ScreenGui.Enabled = true
+task.spawn(function()
+    while task.wait(1) do -- Проверка раз в 2 секунды вместо мгновенной реакции
+        if ScreenGui and ScreenGui.Parent and not ScreenGui.Enabled then
+            ScreenGui.Enabled = true
+        end
     end
 end)
 
@@ -21,7 +23,7 @@ Main.Position = UDim2.new(0.5, -410, 0.5, -220); Main.Active = true; Main.Dragga
 
 local MainMemory, PathFilter, ManualBannedPaths = {}, {}, {}
 local AntiSpamCooldowns, AntiSpamCounts = {}, {}
-local selfMode, controlMode, antiSpam, spyBuffer = true, true, true, true
+local selfMode, controlMode, antiSpam = true, true, true
 local spyFS, spyFC, spyIS = true, false, false
 local currentSelectionGUID, lastCount = nil, 0
 local isMin = false
@@ -87,7 +89,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.5.6"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.4.8"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -115,9 +117,6 @@ Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
 Details = Instance.new("TextBox", ContentFrame)
 Details.Position = UDim2.new(0, 205, 0, 8); Details.Size = UDim2.new(0, 448, 0, 255); Details.BackgroundColor3 = Color3.fromRGB(10, 10, 12); Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = true; Details.Font = Enum.Font.Code; Details.TextSize = 12; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.ClearTextOnFocus = false
-
-local BufferBtn = Instance.new("TextButton", ContentFrame)
-BufferBtn.Size = UDim2.new(0, 90, 0, 20); BufferBtn.Position = UDim2.new(0, 558, 0, 12); BufferBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 150); BufferBtn.Text = "BUFFER: ON"; BufferBtn.TextColor3 = Color3.new(1,1,1); BufferBtn.Font = Enum.Font.SourceSansBold; BufferBtn.TextSize = 10; BufferBtn.ZIndex = 15; BufferBtn.BorderSizePixel = 0
 
 local BanListTitle = Instance.new("TextLabel", ContentFrame)
 BanListTitle.Size = UDim2.new(0, 150, 0, 20); BanListTitle.Position = UDim2.new(0, 662, 0, 125); BanListTitle.BackgroundTransparency = 1
@@ -157,23 +156,7 @@ local function addLog(rem, args, isSelf, typeLabel)
     local function parseValue(v, d)
         d = d or 0; if d > 4 then return "..." end
         local t = type(v)
-        
-        -- [[ НОВЫЙ BUFFER РАСШИФРОВЩИК ]] --
-        if t == "buffer" then
-            if spyBuffer then
-                local bLen = buffer.len(v)
-                local hex, str = "", ""
-                pcall(function() str = buffer.tostring(v):gsub("[%c%z]", ".") end)
-                for i = 0, math.min(bLen - 1, 7) do hex = hex .. string.format("%02X ", buffer.readu8(v, i)) end
-                local extra = ""
-                if bLen >= 12 then pcall(function()
-                    local x, y, z = buffer.readf32(v, 0), buffer.readf32(v, 4), buffer.readf32(v, 8)
-                    extra = string.format("\n[Pos?]: %.2f, %.2f, %.2f", x, y, z)
-                end) end
-                return string.format("buffer(%d) [Hex: %s...] '%s'%s", bLen, hex, str, extra)
-            end
-            return "buffer(" .. buffer.len(v) .. ")"
-        elseif t == "string" then return '"' .. v .. '"'
+        if t == "string" then return '"' .. v .. '"'
         elseif t == "table" then
             local isArray, count = true, 0
             for k, val in pairs(v) do count = count + 1; if type(k) ~= "number" or k ~= count then isArray = false break end end
@@ -239,7 +222,7 @@ local function addLog(rem, args, isSelf, typeLabel)
 
     local data = { guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf, fullText = logDetails, path = eventPath, argsStr = finalArgsStr }
     
-    -- РУЧНОЙ СДВИГ ТАБЛИЦЫ (КАК В ОРИГИНАЛЕ)
+    -- РУЧНОЙ СДВИГ ТАБЛИЦЫ
     for i = #MainMemory, 1, -1 do
         MainMemory[i + 1] = MainMemory[i]
     end
@@ -263,13 +246,6 @@ ControlBtn.MouseButton1Click:Connect(function()
     ControlBtn.BackgroundColor3 = controlMode and Color3.fromRGB(0, 170, 190) or Color3.fromRGB(80, 80, 85)
     AntiSpamBtn.Visible = not controlMode; BlockBtn.Visible = not controlMode
     lastCount = -1 
-end)
-
-BufferBtn.MouseButton1Click:Connect(function()
-    spyBuffer = not spyBuffer
-    BufferBtn.Text = "BUFFER: " .. (spyBuffer and "ON" or "OFF")
-    BufferBtn.BackgroundColor3 = spyBuffer and Color3.fromRGB(70, 70, 150) or Color3.fromRGB(80, 80, 85)
-    lastCount = -1 -- Обновляем UI
 end)
 
 DelBtn.MouseButton1Click:Connect(function()
