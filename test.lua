@@ -1,17 +1,30 @@
--- [[ KRALLDEN SPY v9.4.8 - CLEAN VERSION WITH ANTI-HIDE ]] --
+-- [[ KRALLDEN SPY v9.4.8 - CLEAN VERSION WITH ANTI-HIDE & FEEDBACK FIX ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- Очистка старых версий (безопасно для Delta)
 if playerGui:FindFirstChild("KralldenSpyUI") then playerGui.KralldenSpyUI:Destroy() end
+for _, gui in ipairs(game.CoreGui:GetChildren()) do
+    pcall(function()
+        if gui.Name == "KralldenSpyUI" then
+            gui:Destroy()
+        elseif gui:FindFirstChild("KralldenSpyUI") then
+            gui.KralldenSpyUI:Destroy()
+        end
+    end)
+end
 
-local ScreenGui = Instance.new("ScreenGui", playerGui)
-ScreenGui.Name = "KralldenSpyUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 2147483647
+local targetParent = (gethui and gethui()) or (game:GetService("CoreGui"):FindFirstChild("RobloxGui")) or playerGui
+local ScreenGui = Instance.new("ScreenGui", targetParent)
+ScreenGui.Name = "KralldenSpyUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 10; ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- [[ ФИКС: АВТОВКЛЮЧЕНИЕ ПРИ ПОПЫТКЕ СКРЫТЬ ]] --
-ScreenGui:GetPropertyChangedSignal("Enabled"):Connect(function()
-    if ScreenGui.Enabled == false then
-        ScreenGui.Enabled = true
+-- Anti-Hide (Оптимизированный цикл)
+task.spawn(function()
+    while task.wait(1) do 
+        if ScreenGui and ScreenGui.Parent and not ScreenGui.Enabled then
+            ScreenGui.Enabled = true
+        end
     end
 end)
 
@@ -30,9 +43,10 @@ local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.ra
 
 local RedListScroll, Scroll, Details, ContentFrame
 
+-- Функция фидбека (Исправлена)
 local activeFeedbacks = {}
 local function feedback(button, tempText)
-    if activeFeedbacks[button] then return end
+    if not button or activeFeedbacks[button] then return end
     activeFeedbacks[button] = true
     local oldText = button.Text
     button.Text = tempText
@@ -332,31 +346,39 @@ local function createBotBtn(text, pos, size, color)
     local b = Instance.new("TextButton", ContentFrame); b.Size = size or UDim2.new(0, 220, 0, 58); b.Position = pos; b.BackgroundColor3 = color; b.Text = text; b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 14; b.BorderSizePixel = 0; return b
 end
 
-createBotBtn("COPY ARGS", UDim2.new(0, 205, 0.68, 0), nil, Color3.fromRGB(45, 90, 45)).MouseButton1Click:Connect(function() 
-    local a = Details.Text:match("Args: (.-)\n\nScript"); if a then setclipboard(a); feedback(activeFeedbacks, "ARGS COPIED!") end
+-- Нижние кнопки с исправленным фидбеком
+local CopyArgsBtn = createBotBtn("COPY ARGS", UDim2.new(0, 205, 0.68, 0), nil, Color3.fromRGB(45, 90, 45))
+CopyArgsBtn.MouseButton1Click:Connect(function() 
+    local a = Details.Text:match("Args: (.-)\n\nScript"); 
+    if a then setclipboard(a); feedback(CopyArgsBtn, "ARGS COPIED!") end
 end)
 
-createBotBtn("COPY SCRIPT", UDim2.new(0, 205, 0.83, 0), nil, Color3.fromRGB(60, 60, 120)).MouseButton1Click:Connect(function() 
-    local s = Details.Text:match("Script:\n(.*)"); if s then setclipboard(s); feedback(activeFeedbacks, "SCRIPT COPIED!") end
+local CopyScriptBtn = createBotBtn("COPY SCRIPT", UDim2.new(0, 205, 0.83, 0), nil, Color3.fromRGB(60, 60, 120))
+CopyScriptBtn.MouseButton1Click:Connect(function() 
+    local s = Details.Text:match("Script:\n(.*)"); 
+    if s then setclipboard(s); feedback(CopyScriptBtn, "SCRIPT COPIED!") end
 end)
 
-createBotBtn("CLEAR LOG", UDim2.new(0, 432, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(80, 80, 85)).MouseButton1Click:Connect(function()
+local ClearLogBtn = createBotBtn("CLEAR LOG", UDim2.new(0, 432, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(80, 80, 85))
+ClearLogBtn.MouseButton1Click:Connect(function()
     local nM = {}
     for _, m in ipairs(MainMemory) do if m.isSelf then nM[#nM+1] = m end end
-    MainMemory = nM; lastCount = -1; feedback(activeFeedbacks, "CLEARED SRV")
+    MainMemory = nM; lastCount = -1; feedback(ClearLogBtn, "CLEARED SRV")
 end)
 
-createBotBtn("CLEAR SELF", UDim2.new(0, 544, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(100, 80, 60)).MouseButton1Click:Connect(function()
+local ClearSelfBtn = createBotBtn("CLEAR SELF", UDim2.new(0, 544, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(100, 80, 60))
+ClearSelfBtn.MouseButton1Click:Connect(function()
     local nM = {}
     for _, m in ipairs(MainMemory) do if not m.isSelf then nM[#nM+1] = m end end
-    MainMemory = nM; lastCount = -1; feedback(activeFeedbacks, "CLEARED SELF")
+    MainMemory = nM; lastCount = -1; feedback(ClearSelfBtn, "CLEARED SELF")
 end)
 
-createBotBtn("EXECUTE", UDim2.new(0, 432, 0.83, 0), nil, Color3.fromRGB(120, 60, 60)).MouseButton1Click:Connect(function() 
+local ExecuteBtn = createBotBtn("EXECUTE", UDim2.new(0, 432, 0.83, 0), nil, Color3.fromRGB(120, 60, 60))
+ExecuteBtn.MouseButton1Click:Connect(function() 
     local s = Details.Text:match("Script:\n(.*)") or Details.Text
     if s and s ~= "" then 
         local f = loadstring(s); 
-        if f then task.spawn(f); feedback(activeFeedbacks, "EXECUTED!") end 
+        if f then task.spawn(f); feedback(ExecuteBtn, "EXECUTED!") end 
     end 
 end)
 
