@@ -1,9 +1,9 @@
--- [[ KRALLDEN SPY v9.5.8 - MERGED STABLE VERSION ]] --
+-- [[ KRALLDEN SPY v9.5.9 - FULL VERSION WITH FIX BANNED UI ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Очистка старых версий
+-- Очистка старых версий (безопасно для Delta/LDPlayer)
 if playerGui:FindFirstChild("KralldenSpyUI") then playerGui.KralldenSpyUI:Destroy() end
 for _, gui in ipairs(game.CoreGui:GetChildren()) do
     pcall(function()
@@ -19,7 +19,7 @@ local targetParent = (gethui and gethui()) or (game:GetService("CoreGui"):FindFi
 local ScreenGui = Instance.new("ScreenGui", targetParent)
 ScreenGui.Name = "KralldenSpyUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 10; ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Anti-Hide цикл
+-- Anti-Hide (Оптимизированный цикл)
 task.spawn(function()
     while task.wait(1) do 
         if ScreenGui and ScreenGui.Parent and not ScreenGui.Enabled then
@@ -58,7 +58,7 @@ local function feedback(button, tempText)
     end)
 end
 
--- Обновление прорисовки текста (FIX для LDPlayer)
+-- Обновление прорисовки текста
 local function updateDetailsCanvas()
     if DetailsScroll and Details then
         task.defer(function()
@@ -118,7 +118,7 @@ local function updateRedListUI()
         local b = Instance.new("TextButton", RedListScroll)
         b.Size = UDim2.new(1, -6, 0, 25); b:SetAttribute("GUID", data.guid); b:SetAttribute("Path", path)
         b.BackgroundColor3 = (currentSelectionGUID == data.guid) and Color3.fromRGB(100, 50, 200) or Color3.fromRGB(100, 35, 35)
-        b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 10; b.BorderSizePixel = 0
+        b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 10; b.BorderSizePixel = 0; b.ClipsDescendants = true
         b.Text = " [X] " .. (path:match("[^%.%[%]]+$") or path)
         b.MouseButton1Click:Connect(function() 
             currentSelectionGUID = data.guid
@@ -135,7 +135,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.5.8"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.5.9"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -161,7 +161,6 @@ Scroll = Instance.new("ScrollingFrame", ContentFrame)
 Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 190, 1, -16); Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Scroll.BorderSizePixel = 0; Scroll.ScrollBarThickness = 4
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
--- DETAILS SCROLL FIX
 DetailsScroll = Instance.new("ScrollingFrame", ContentFrame)
 DetailsScroll.Position = UDim2.new(0, 205, 0, 8); DetailsScroll.Size = UDim2.new(0, 448, 0, 255); DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12); DetailsScroll.BorderSizePixel = 0; DetailsScroll.ScrollBarThickness = 4; DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
@@ -315,7 +314,7 @@ task.spawn(function()
             b.Text = string.format("[%s]%s %s", d.type, (d.isSelf and " [S]" or ""), d.name)
             b:SetAttribute("GUID", d.guid); b:SetAttribute("IsSelf", d.isSelf)
             b.BackgroundColor3 = (currentSelectionGUID == d.guid) and Color3.fromRGB(100, 50, 200) or (d.isSelf and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(40, 40, 45))
-            b.TextColor3 = Color3.new(1,1,1); b.BorderSizePixel = 0
+            b.TextColor3 = Color3.new(1,1,1); b.BorderSizePixel = 0; b.ClipsDescendants = true
             b.MouseButton1Click:Connect(function()
                 currentSelectionGUID = d.guid; Details.Text = getSortedDetails(d); updateDetailsCanvas(); refreshSelectionColors()
             end)
@@ -339,8 +338,9 @@ SortBtn.MouseButton1Click:Connect(function()
     SortBtn.Text = "SORT: "..(sortEnabled and "ON" or "OFF")
     SortBtn.BackgroundColor3 = sortEnabled and Color3.fromRGB(0, 140, 140) or Color3.fromRGB(40, 70, 70)
     if currentSelectionGUID then
-        for _, m in ipairs(MainMemory) do if m.guid == currentSelectionGUID then Details.Text = getSortedDetails(m); break end end
-        for _, d in pairs(ManualBannedPaths) do if d.guid == currentSelectionGUID then Details.Text = getSortedDetails(d); break end end
+        local found = false
+        for _, m in ipairs(MainMemory) do if m.guid == currentSelectionGUID then Details.Text = getSortedDetails(m); found = true; break end end
+        if not found then for _, d in pairs(ManualBannedPaths) do if d.guid == currentSelectionGUID then Details.Text = getSortedDetails(d); break end end end
         updateDetailsCanvas()
     end
 end)
