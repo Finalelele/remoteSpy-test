@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.5.4 - ULTIMATE SCROLL & RENDERING FIX ]] --
+-- [[ KRALLDEN SPY v9.5.5 - ULTIMATE SCROLL & RENDERING FIX ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -55,15 +55,14 @@ local function feedback(button, tempText)
     end)
 end
 
--- ФУНКЦИЯ ИСПРАВЛЕНИЯ СКРОЛЛА (БЕЗ LAG-SIGNAL)
+-- ФУНКЦИЯ ОБНОВЛЕНИЯ СКРОЛЛА (Аналогично левому списку)
 local function updateDetailsCanvas()
-    task.defer(function() -- Используем defer для безопасности потока UI
-        if Details and DetailsScroll then
-            local textHeight = Details.TextBounds.Y + 20
-            Details.Size = UDim2.new(1, 0, 0, textHeight)
-            DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, textHeight)
-        end
-    end)
+    if DetailsScroll and Details then
+        -- Небольшая задержка, чтобы движок Roblox успел посчитать размер текста
+        task.defer(function()
+            DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, Details.TextBounds.Y + 40)
+        end)
+    end
 end
 
 local function refreshSelectionColors()
@@ -137,7 +136,7 @@ local function updateRedListUI()
         b.MouseButton1Click:Connect(function()
             currentSelectionGUID = data.guid
             Details.Text = getSortedDetails(data)
-            updateDetailsCanvas() -- FIX APPLIED
+            updateDetailsCanvas()
             refreshSelectionColors()
         end)
     end
@@ -147,9 +146,9 @@ end
 local Header = Instance.new("Frame", Main)
 Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Header.ZIndex = 10; Header.BorderSizePixel = 0
 local Title = Instance.new("TextLabel", Header)
-Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0); Title.Text = "KRALLDEN SPY v9.5.4"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0); Title.Text = "KRALLDEN SPY v9.5.5"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 local MinBtn = Instance.new("TextButton", Header)
-MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
+MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
 
 local function createHeaderBtn(text, offset, color, sizeX)
     local b = Instance.new("TextButton", Header)
@@ -173,15 +172,18 @@ Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 DetailsScroll = Instance.new("ScrollingFrame", ContentFrame)
 DetailsScroll.Position = UDim2.new(0, 205, 0, 8); DetailsScroll.Size = UDim2.new(0, 448, 0, 255); DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12); DetailsScroll.BorderSizePixel = 0
 DetailsScroll.ScrollBarThickness = 6; DetailsScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120); DetailsScroll.ClipsDescendants = true
-DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.None -- Отключаем забагованный автосайз
+-- Включаем автоматический размер как в левом списке
+DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-DetailsScroll.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
+DetailsScroll.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar 
 
-local dLayout = Instance.new("UIListLayout", DetailsScroll)
+local dLayout = Instance.new("UIListLayout", DetailsScroll) 
 dLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 Details = Instance.new("TextBox", DetailsScroll)
-Details.Size = UDim2.new(1, 0, 0, 0); Details.AutomaticSize = Enum.AutomaticSize.Y; Details.BackgroundTransparency = 1; Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = true; Details.Font = Enum.Font.Code; Details.TextSize = 12; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.ClearTextOnFocus = false
+-- Важно: ставим AutomaticSize.Y, чтобы TextBox сам рос вниз от текста
+Details.Size = UDim2.new(1, 0, 0, 0); Details.AutomaticSize = Enum.AutomaticSize.Y; 
+Details.BackgroundTransparency = 1; Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = true; Details.Font = Enum.Font.Code; Details.TextSize = 12; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.ClearTextOnFocus = false
 local dPadding = Instance.new("UIPadding", Details)
 dPadding.PaddingLeft = UDim.new(0, 10); dPadding.PaddingRight = UDim.new(0, 10); dPadding.PaddingTop = UDim.new(0, 5); dPadding.PaddingBottom = UDim.new(0, 5)
 
@@ -299,9 +301,7 @@ DelBtn.MouseButton1Click:Connect(function()
         end
         if targetData then 
             if foundInBanList then ManualBannedPaths[targetData.path] = nil; updateRedListUI(); feedback(DelBtn, "UNBANNED") else feedback(DelBtn, "DELETED") end
-            lastCount = -1; currentSelectionGUID = nil; 
-            Details.Text = ""; 
-            updateDetailsCanvas() -- FIX APPLIED
+            lastCount = -1; currentSelectionGUID = nil; Details.Text = ""; updateDetailsCanvas()
         end
     end
 end)
@@ -315,10 +315,7 @@ BlockBtn.MouseButton1Click:Connect(function()
                     ManualBannedPaths[p] = {guid = d.guid, prefix = "MANUAL BANNED:\n\n", fullText = d.fullText, rawArgs = d.rawArgs, type = d.type, path = d.path, argsStr = d.argsStr}
                     local nM = {}
                     for _, m in ipairs(MainMemory) do if not (m.path == p and not m.isSelf) then nM[#nM+1] = m end end
-                    MainMemory = nM; lastCount = -1; currentSelectionGUID = nil; updateRedListUI(); 
-                    Details.Text = "Banned."; 
-                    updateDetailsCanvas() -- FIX APPLIED
-                    feedback(BlockBtn, "BANNED") 
+                    MainMemory = nM; lastCount = -1; currentSelectionGUID = nil; updateRedListUI(); Details.Text = "Banned."; updateDetailsCanvas(); feedback(BlockBtn, "BANNED") 
                 end
                 break
             end
@@ -359,7 +356,7 @@ task.spawn(function()
             b.MouseButton1Click:Connect(function()
                 currentSelectionGUID = d.guid
                 Details.Text = getSortedDetails(d)
-                updateDetailsCanvas() -- FIX APPLIED
+                updateDetailsCanvas()
                 refreshSelectionColors()
             end)
         end
@@ -388,16 +385,16 @@ SortBtn.MouseButton1Click:Connect(function()
         local found = false
         for _, m in ipairs(MainMemory) do 
             if m.guid == currentSelectionGUID then 
-                Details.Text = getSortedDetails(m)
-                updateDetailsCanvas() -- FIX APPLIED
+                Details.Text = getSortedDetails(m); 
+                updateDetailsCanvas();
                 found = true; break 
             end 
         end
         if not found then 
             for _, data in pairs(ManualBannedPaths) do 
                 if data.guid == currentSelectionGUID then 
-                    Details.Text = getSortedDetails(data)
-                    updateDetailsCanvas() -- FIX APPLIED
+                    Details.Text = getSortedDetails(data); 
+                    updateDetailsCanvas();
                     break 
                 end 
             end 
