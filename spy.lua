@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.4.9 - FULL VERSION WITH PRETTY PRINT & SCROLL ]] --
+-- [[ KRALLDEN SPY v9.5.0 - FIXED PRETTY PRINT & BAN LIST SORT ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -43,29 +43,46 @@ local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.ra
 
 local RedListScroll, Scroll, Details, ContentFrame, DetailsScroll
 
--- ФУНКЦИЯ PRETTY PRINT
+-- ФУНКЦИЯ PRETTY PRINT (ИСПРАВЛЕННАЯ)
 local function formatTable(t, indent)
     indent = indent or 0
     local spacing = string.rep("    ", indent + 1)
     local result = "{\n"
-    local keys = {}
-    for k in pairs(t) do table.insert(keys, k) end
-    for _, k in ipairs(keys) do
-        local v = t[k]
-        local keyStr = type(k) == "string" and '["'..k..'"]' or "["..tostring(k).."]"
-        result = result .. spacing .. keyStr .. " = "
+    
+    -- Проверка: является ли таблица простым списком (массивом)
+    local isArray = true
+    local count = 0
+    for k, _ in pairs(t) do
+        count = count + 1
+        if type(k) ~= "number" or k ~= count then
+            isArray = false
+            break
+        end
+    end
+
+    for k, v in pairs(t) do
+        local valStr = ""
         if type(v) == "table" then
-            result = result .. formatTable(v, indent + 1) .. ",\n"
+            valStr = formatTable(v, indent + 1)
         elseif typeof(v) == "CFrame" then
-            result = result .. "CFrame.new(" .. tostring(v) .. "),\n"
+            valStr = "CFrame.new(" .. tostring(v) .. ")"
         elseif typeof(v) == "Vector3" then
-            result = result .. "Vector3.new(" .. tostring(v) .. "),\n"
+            valStr = "Vector3.new(" .. tostring(v) .. ")"
         elseif typeof(v) == "Color3" then
-            result = result .. "Color3.new(" .. tostring(v) .. "),\n"
+            valStr = "Color3.new(" .. tostring(v) .. ")"
         elseif type(v) == "string" then
-            result = result .. '"' .. v .. '",\n'
+            valStr = '"' .. v .. '"'
         else
-            result = result .. tostring(v) .. ",\n"
+            valStr = tostring(v)
+        end
+
+        if isArray then
+            -- Убираем [1], [2] для обычных списков
+            result = result .. spacing .. valStr .. ",\n"
+        else
+            -- Оставляем ключи для словарей
+            local keyStr = type(k) == "string" and '["'..k..'"]' or "["..tostring(k).."]"
+            result = result .. spacing .. keyStr .. " = " .. valStr .. ",\n"
         end
     end
     return result .. string.rep("    ", indent) .. "}"
@@ -123,10 +140,21 @@ local function refreshSelectionColors()
     end
 end
 
+-- ОБНОВЛЕНИЕ RED LIST С СОРТИРОВКОЙ
 local function updateRedListUI()
     if not RedListScroll then return end
     for _, v in pairs(RedListScroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-    for path, data in pairs(ManualBannedPaths) do
+    
+    -- Собираем пути для сортировки
+    local paths = {}
+    for path, _ in pairs(ManualBannedPaths) do table.insert(paths, path) end
+    
+    if sortEnabled then
+        table.sort(paths)
+    end
+
+    for _, path in ipairs(paths) do
+        local data = ManualBannedPaths[path]
         local b = Instance.new("TextButton", RedListScroll)
         b.Size = UDim2.new(1, -6, 0, 25)
         b:SetAttribute("GUID", data.guid)
@@ -148,7 +176,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.4.8"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.5.0"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -181,7 +209,7 @@ DetailsScroll.Position = UDim2.new(0, 205, 0, 8); DetailsScroll.Size = UDim2.new
 Details = Instance.new("TextBox", DetailsScroll)
 Details.Size = UDim2.new(1, -10, 1, 0); Details.BackgroundTransparency = 1; Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = true; Details.Font = Enum.Font.Code; Details.TextSize = 12; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.ClearTextOnFocus = false; Details.AutomaticSize = Enum.AutomaticSize.Y
 
--- КНОПКА SORT ВНУТРИ DETAILS (Справа сверху)
+-- КНОПКА SORT ВНУТРИ DETAILS
 local SortBtn = Instance.new("TextButton", ContentFrame)
 SortBtn.Size = UDim2.new(0, 60, 0, 20); SortBtn.Position = UDim2.new(0, 590, 0, 12); SortBtn.BackgroundColor3 = Color3.fromRGB(40, 60, 150); SortBtn.Text = "SORT: OFF"; SortBtn.TextColor3 = Color3.new(1,1,1); SortBtn.Font = Enum.Font.SourceSansBold; SortBtn.TextSize = 10; SortBtn.ZIndex = 15; SortBtn.BorderSizePixel = 0
 
@@ -190,6 +218,7 @@ SortBtn.MouseButton1Click:Connect(function()
     SortBtn.Text = "SORT: " .. (sortEnabled and "ON" or "OFF")
     SortBtn.BackgroundColor3 = sortEnabled and Color3.fromRGB(30, 120, 255) or Color3.fromRGB(40, 60, 150)
     updateDetailsText()
+    updateRedListUI() -- Добавлено: обновляем бан-лист при смене сортировки
 end)
 
 local BanListTitle = Instance.new("TextLabel", ContentFrame)
