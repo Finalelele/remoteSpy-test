@@ -64,7 +64,6 @@ local function formatTable(t, indent)
         if type(v) == "table" then
             valStr = formatTable(v, indent + 1)
         elseif typeof(v) == "CFrame" then
-            -- Разбиваем CFrame на части, чтобы не было "каши"
             local components = {v:GetComponents()}
             for i, comp in ipairs(components) do 
                 components[i] = string.format("%.3f", comp):gsub("%.?0+$", "") 
@@ -110,23 +109,34 @@ local function updateDetailsText()
     if not currentSelectionGUID then return end
     local data = nil
     for _, m in ipairs(MainMemory) do if m.guid == currentSelectionGUID then data = m; break end end
+    
+    -- Если не нашли в памяти, ищем в бан-листе
     if not data then 
-        for _, d in pairs(ManualBannedPaths) do if d.guid == currentSelectionGUID then data = {fullText = d.details, isBannedLog = true}; break end end
+        for path, d in pairs(ManualBannedPaths) do 
+            if d.guid == currentSelectionGUID then 
+                -- Создаем временную структуру для отображения забаненного ивента
+                data = {
+                    path = path,
+                    rawArgs = d.rawArgs or {},
+                    argsStr = d.argsStr or "None",
+                    type = d.type or "BANNED",
+                    isBannedLog = true
+                }
+                break 
+            end 
+        end 
     end
     
     if data then
-        if data.isBannedLog then
-            Details.Text = data.fullText
-        else
-            -- Если включен Sort, используем красивый формат для аргументов
-            local argDisplay = sortEnabled and formatTable(data.rawArgs) or data.argsStr
-            local methodName = (data.type == "IS" and "InvokeServer" or (data.type == "FC" and "FireClient" or "FireServer"))
-            
-            -- Скрипт тоже форматируем красиво при включенном Sort
-            local scriptArgs = sortEnabled and formatTable(data.rawArgs):gsub("^\n", "") or data.argsStr
-            Details.Text = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", 
-                data.type, data.path, argDisplay, data.path, methodName, scriptArgs)
-        end
+        local argDisplay = sortEnabled and formatTable(data.rawArgs) or data.argsStr
+        local methodName = (data.type == "IS" and "InvokeServer" or (data.type == "FC" and "FireClient" or "FireServer"))
+        local scriptArgs = sortEnabled and formatTable(data.rawArgs):gsub("^\n", "") or data.argsStr
+        
+        Details.Text = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", 
+            data.type, data.path, argDisplay, data.path, methodName, scriptArgs)
+        
+        -- Динамическое обновление размера прокрутки под длину текста
+        DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, Details.TextBounds.Y + 20)
     end
 end
 
@@ -147,22 +157,12 @@ local function refreshSelectionColors()
     end
 end
 
--- ОБНОВЛЕНИЕ RED LIST С ПРАВИЛЬНОЙ СОРТИРОВКОЙ
+-- ОБНОВЛЕНИЕ RED LIST (БЕЗ СОРТИРОВКИ ПО АЛФАВИТУ)
 local function updateRedListUI()
     if not RedListScroll then return end
     for _, v in pairs(RedListScroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     
-    local paths = {}
-    for path, _ in pairs(ManualBannedPaths) do table.insert(paths, path) end
-    
-    if sortEnabled then
-        table.sort(paths, function(a, b)
-            return a:lower() < b:lower()
-        end)
-    end
-
-    for _, path in ipairs(paths) do
-        local data = ManualBannedPaths[path]
+    for path, data in pairs(ManualBannedPaths) do
         local b = Instance.new("TextButton", RedListScroll)
         b.Size = UDim2.new(1, -6, 0, 25)
         b:SetAttribute("GUID", data.guid)
@@ -214,7 +214,7 @@ DetailsScroll = Instance.new("ScrollingFrame", ContentFrame)
 DetailsScroll.Position = UDim2.new(0, 205, 0, 8); DetailsScroll.Size = UDim2.new(0, 448, 0, 255); DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12); DetailsScroll.BorderSizePixel = 0; DetailsScroll.ScrollBarThickness = 4; DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 Details = Instance.new("TextBox", DetailsScroll)
-Details.Size = UDim2.new(1, -10, 1, 0); Details.BackgroundTransparency = 1; Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = true; Details.Font = Enum.Font.Code; Details.TextSize = 12; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.ClearTextOnFocus = false; Details.AutomaticSize = Enum.AutomaticSize.Y
+Details.Size = UDim2.new(1, -10, 0, 0); Details.BackgroundTransparency = 1; Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = true; Details.Font = Enum.Font.Code; Details.TextSize = 12; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.ClearTextOnFocus = false; Details.AutomaticSize = Enum.AutomaticSize.Y
 
 -- КНОПКА SORT
 local SortBtn = Instance.new("TextButton", ContentFrame)
@@ -225,7 +225,6 @@ SortBtn.MouseButton1Click:Connect(function()
     SortBtn.Text = "SORT: " .. (sortEnabled and "ON" or "OFF")
     SortBtn.BackgroundColor3 = sortEnabled and Color3.fromRGB(30, 120, 255) or Color3.fromRGB(40, 60, 150)
     updateDetailsText()
-    updateRedListUI() 
 end)
 
 local BanListTitle = Instance.new("TextLabel", ContentFrame)
@@ -315,7 +314,13 @@ local function addLog(rem, args, isSelf, typeLabel)
         if (tick() - (AntiSpamCooldowns[eventPath] or 0)) < 0.4 then
             AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
             if AntiSpamCounts[eventPath] >= 4 then
-                ManualBannedPaths[eventPath] = {guid = generateGUID(), details = "AUTO-BANNED BY ANTI-SPAM\n\n" .. logDetails}
+                ManualBannedPaths[eventPath] = {
+                    guid = generateGUID(), 
+                    rawArgs = args, 
+                    argsStr = finalArgsStr, 
+                    type = typeLabel,
+                    path = eventPath
+                }
                 local nM = {}
                 for _, m in ipairs(MainMemory) do if not (m.path == eventPath and not m.isSelf) then nM[#nM + 1] = m end end
                 MainMemory = nM; lastCount = -1; currentSelectionGUID = nil; updateRedListUI(); return 
@@ -370,7 +375,13 @@ BlockBtn.MouseButton1Click:Connect(function()
     if currentSelectionGUID then
         for i, d in ipairs(MainMemory) do
             if d.guid == currentSelectionGUID and not d.isSelf then
-                ManualBannedPaths[d.path] = {guid = d.guid, details = "MANUAL BANNED:\n\n" .. d.fullText}
+                ManualBannedPaths[d.path] = {
+                    guid = d.guid, 
+                    rawArgs = d.rawArgs, 
+                    argsStr = d.argsStr, 
+                    type = d.type,
+                    path = d.path
+                }
                 local nM = {}
                 for _, m in ipairs(MainMemory) do if not (m.path == d.path and not m.isSelf) then table.insert(nM, m) end end
                 MainMemory = nM; lastCount = -1; currentSelectionGUID = nil; updateRedListUI(); Details.Text = "Banned."; feedback(BlockBtn, "BANNED"); break
