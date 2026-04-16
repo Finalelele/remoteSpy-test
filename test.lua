@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.4.5 - CLEAN VERSION WITH ANTI-HIDE & FEEDBACK FIX ]] --
+-- [[ KRALLDEN SPY v9.4.9 - CLEAN VERSION WITH ANTI-HIDE & FEEDBACK FIX ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -121,7 +121,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.4.5"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.4.9"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -147,13 +147,41 @@ Scroll = Instance.new("ScrollingFrame", ContentFrame)
 Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 190, 1, -16); Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Scroll.BorderSizePixel = 0
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
-DetailsScroll = Instance.new("ScrollingFrame", ContentFrame); DetailsScroll.Position = UDim2.new(0, 205, 0, 8); DetailsScroll.Size = UDim2.new(0, 448, 0, 255); DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12); DetailsScroll.BorderSizePixel = 0; DetailsScroll.ScrollBarThickness = 6
-Details = Instance.new("TextBox", DetailsScroll); Details.Size = UDim2.new(1, -10, 0, 0); Details.Position = UDim2.new(0, 5, 0, 5); Details.AutomaticSize = Enum.AutomaticSize.Y; Details.BackgroundTransparency = 1; Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = true; Details.Font = Enum.Font.Code; Details.TextSize = 12; Details.TextXAlignment = Enum.TextXAlignment.Left; Details.TextYAlignment = Enum.TextYAlignment.Top; Details.ClearTextOnFocus = false
+-- НОВЫЙ БЛОК: Скролл настроен по принципу "UI-магазинов"
+DetailsScroll = Instance.new("ScrollingFrame", ContentFrame)
+DetailsScroll.Position = UDim2.new(0, 205, 0, 8)
+DetailsScroll.Size = UDim2.new(0, 448, 0, 255)
+DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+DetailsScroll.BorderSizePixel = 0
+DetailsScroll.ScrollBarThickness = 6
+DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Авто-размер скролла
+DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, 0) -- Обязательно 0 для AutomaticCanvasSize
 
--- Автообновление CanvasSize для полного скролла
-Details:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-    DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, Details.AbsoluteSize.Y + 10)
-end)
+-- Заменяем ручное позиционирование на отступы, чтобы движок сам все считал
+local DetailsPadding = Instance.new("UIPadding", DetailsScroll)
+DetailsPadding.PaddingTop = UDim.new(0, 5)
+DetailsPadding.PaddingBottom = UDim.new(0, 5)
+DetailsPadding.PaddingLeft = UDim.new(0, 5)
+DetailsPadding.PaddingRight = UDim.new(0, 5)
+
+-- UIListLayout - главный секрет надежных скроллов
+local DetailsLayout = Instance.new("UIListLayout", DetailsScroll)
+DetailsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+Details = Instance.new("TextBox", DetailsScroll)
+Details.Size = UDim2.new(1, 0, 0, 0) -- Ширина 100%, высота 0 (будет расти)
+Details.AutomaticSize = Enum.AutomaticSize.Y
+Details.BackgroundTransparency = 1
+Details.TextColor3 = Color3.new(1, 1, 1)
+Details.MultiLine = true
+Details.TextWrapped = true
+Details.TextEditable = true
+Details.Font = Enum.Font.Code
+Details.TextSize = 12
+Details.TextXAlignment = Enum.TextXAlignment.Left
+Details.TextYAlignment = Enum.TextYAlignment.Top
+Details.ClearTextOnFocus = false
+-- КОНЕЦ НОВОГО БЛОКА
 
 local BanListTitle = Instance.new("TextLabel", ContentFrame)
 BanListTitle.Size = UDim2.new(0, 150, 0, 20); BanListTitle.Position = UDim2.new(0, 662, 0, 125); BanListTitle.BackgroundTransparency = 1
