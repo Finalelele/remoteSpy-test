@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.6.8 FIXED ]] --
+-- [[ KRALLDEN SPY v9.6.9 FIXED & OPTIMIZED ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -88,12 +88,15 @@ end
 
 local function forceUpdateCanvas()
     if not Details or not DetailsScroll then return end
-    local width = DetailsScroll.AbsoluteSize.X - 35
+    local width = DetailsScroll.AbsoluteSize.X - 45 -- Запас для скроллбара и отступов
     if width <= 0 then width = 413 end
-    local text = (Details.Text ~= "" and Details.Text) or " "
-    local size = TextService:GetTextSize(text, Details.TextSize, Details.Font, Vector2.new(width, math.huge))
-    local textHeight = size.Y + 40
-    Details.Size = UDim2.new(1, 0, 0, textHeight)
+    
+    -- Очистка текста от мусорных символов, которые ломают перенос
+    local cleanText = Details.Text:gsub("%z", "") 
+    
+    local size = TextService:GetTextSize(cleanText, Details.TextSize, Details.Font, Vector2.new(width, math.huge))
+    local textHeight = size.Y + 60
+    Details.Size = UDim2.new(1, -10, 0, textHeight)
     DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, textHeight)
 end
 
@@ -155,7 +158,7 @@ local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Header.ZIndex = 10; Header.BorderSizePixel = 0; Header.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0); Title.Text = "KRALLDEN SPY v9.6.8"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0; Title.Parent = Header
+Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0); Title.Text = "KRALLDEN SPY v9.6.9"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0; Title.Parent = Header
 
 local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0; MinBtn.Parent = Header
@@ -239,7 +242,8 @@ local function addLog(rem, args, isSelf, typeLabel)
         if d > 128 then return "..." end
         local t = typeof(v)
         
-        if t == "string" then return '"' .. v .. '"'
+        if t == "string" then 
+            return '"' .. v:gsub("%z", "") .. '"' -- Очистка от нуль-байтов
         elseif t == "table" then
             local isArray, count = true, 0
             pcall(function() for k, val in pairs(v) do count = count + 1; if type(k) ~= "number" or k ~= count then isArray = false break end end end)
@@ -256,7 +260,13 @@ local function addLog(rem, args, isSelf, typeLabel)
                 end
             else
                 local items = {}
-                for k, val in pairs(v) do
+                local keys = {}
+                for k in pairs(v) do table.insert(keys, k) end
+                -- АНТИ-ПРОВЕРКА: Сортируем ключи словаря, чтобы порядок всегда был одинаковым
+                table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+                
+                for _, k in ipairs(keys) do
+                    local val = v[k]
                     local key = type(k) == "number" and "["..k.."]" or '["'..tostring(k)..'"]'
                     local vStr = parseValue(val, d + 1, pretty, indent + 1)
                     if pretty then
@@ -272,7 +282,6 @@ local function addLog(rem, args, isSelf, typeLabel)
         elseif t == "CFrame" then
             local comp = {v:GetComponents()}
             if pretty then
-                -- FIX: Передаем все 12 аргументов для конструктора CFrame
                 return string.format("CFrame.new(\n%s%.3f, %.3f, %.3f,\n%s%.3f, %.3f, %.3f,\n%s%.3f, %.3f, %.3f,\n%s%.3f, %.3f, %.3f\n%s)",
                     string.rep("  ", indent+1), comp[1], comp[2], comp[3],
                     string.rep("  ", indent+1), comp[4], comp[5], comp[6],
@@ -302,6 +311,7 @@ local function addLog(rem, args, isSelf, typeLabel)
         if selfMode then
             if #SelfStorage[eventPath] > 0 then alreadyExists = true end
         else
+            -- Благодаря сортировке ключей в parseValue, fArgs теперь всегда одинаков для одинаковых данных
             for _, entry in ipairs(SelfStorage[eventPath]) do
                 if entry.args == fArgs then alreadyExists = true break end
             end
@@ -556,7 +566,7 @@ ExecBtn.MouseButton1Click:Connect(function()
         local f, err = loadstring(finalScript)
         if f then 
             task.spawn(f) 
-            feedback(ExecBtn, "EXECUTED!") -- Изменено с DONE! на EXECUTED!
+            feedback(ExecBtn, "EXECUTED!")
         else 
             warn("EXECUTE ERROR:", err)
             feedback(ExecBtn, "ERROR!") 
