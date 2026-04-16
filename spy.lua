@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.6.3 FIXED ]] --
+-- [[ KRALLDEN SPY v9.6.4 FIXED ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -95,7 +95,6 @@ end
 
 local function forceUpdateCanvas()
     if not Details or not DetailsScroll then return end
-    -- ИСПРАВЛЕНИЕ: Безопасный расчет ширины
     local width = DetailsScroll.AbsoluteSize.X - 35
     if width <= 0 then width = 413 end
     local text = (Details.Text ~= "" and Details.Text) or " "
@@ -170,7 +169,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 200, 1, 0)
 Title.BackgroundTransparency = 1
 Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.6.3"
+Title.Text = "KRALLDEN SPY v9.6.4"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 16
@@ -241,7 +240,7 @@ DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
 DetailsScroll.BorderSizePixel = 0
 DetailsScroll.ScrollBarThickness = 6
 DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.None -- ИСПРАВЛЕНО
+DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.None 
 DetailsScroll.Parent = ContentFrame
 
 local detailPad = Instance.new("UIPadding")
@@ -323,25 +322,26 @@ local function addLog(rem, args, isSelf, typeLabel)
             if isArray then
                 for i, val in ipairs(v) do
                     local vStr = parseValue(val, d + 1, pretty, indent + 1)
-                    local longValue = #vStr > 40 or vStr:find("CFrame") or vStr:find("Vector")
-                    if pretty or longValue then
+                    if pretty then
                         res = res .. string.rep("  ", indent + 1) .. vStr .. ",\n"
                     else
-                        res = res .. vStr .. ", "
+                        res = res .. vStr .. (i == #v and "" or ",")
                     end
                 end
             else
+                local items = {}
                 for k, val in pairs(v) do
                     local key = type(k) == "number" and "["..k.."]" or '["'..tostring(k)..'"]'
                     local vStr = parseValue(val, d + 1, pretty, indent + 1)
                     if pretty then
                         res = res .. string.rep("  ", indent + 1) .. key .. " = " .. vStr .. ",\n"
                     else
-                        res = res .. key .. "=" .. vStr .. ", "
+                        table.insert(items, key .. "=" .. vStr)
                     end
                 end
+                if not pretty then res = res .. table.concat(items, ",") end
             end
-            res = res:gsub(",%s*$", "") .. (pretty and "\n" .. string.rep("  ", indent) or "") .. "}"
+            res = res .. (pretty and string.rep("  ", indent) .. "}" or "}")
             return res == "{}" and "{}" or res
         elseif t == "CFrame" then
             if pretty then
@@ -366,7 +366,7 @@ local function addLog(rem, args, isSelf, typeLabel)
         table.insert(argListPretty, parseValue(v, 0, true, 0))
     end
     
-    local fArgs, fArgsP = table.concat(argList, ", "), table.concat(argListPretty, ",\n")
+    local fArgs, fArgsP = table.concat(argList, ","), table.concat(argListPretty, ",\n")
     for _, m in ipairs(MainMemory) do
         if m.path == eventPath and m.isSelf == isSelf then
             if (isSelf and (selfMode or m.argsStr == fArgs)) or (not isSelf and controlMode) or m.argsStr == fArgs then return end
@@ -382,7 +382,6 @@ local function addLog(rem, args, isSelf, typeLabel)
         if (tick() - (AntiSpamCooldowns[eventPath] or 0)) < 0.4 then
             AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
             if AntiSpamCounts[eventPath] >= 4 then
-                -- ИСПРАВЛЕНИЕ ОШИБКИ ДОСТУПА 369:
                 local remoteName = "Unknown"
                 pcall(function() remoteName = tostring(rem.Name) end)
                 
