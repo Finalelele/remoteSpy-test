@@ -51,7 +51,7 @@ local RedListScroll, Scroll, DetailsScroll, Details, ContentFrame
 -- Функция фидбека
 local activeFeedbacks = {}
 local function feedback(button, tempText)
-    if not button or activeFeedbacks[button] then return end
+    if not button or typeof(button) ~= "Instance" or activeFeedbacks[button] then return end
     activeFeedbacks[button] = true
     local oldText = button.Text
     button.Text = tempText
@@ -123,28 +123,31 @@ local function updateDetailsView()
 end
 
 local function updateRedListUI()
-    if not RedListScroll then return end
-    for _, v in pairs(RedListScroll:GetChildren()) do 
-        if v:IsA("TextButton") then v:Destroy() end 
-    end
-    for path, data in pairs(ManualBannedPaths) do
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1, -6, 0, 25)
-        b:SetAttribute("GUID", data.guid)
-        b.BackgroundColor3 = (currentSelectionGUID == data.guid) and Color3.fromRGB(100, 50, 200) or Color3.fromRGB(100, 35, 35)
-        b.TextColor3 = Color3.new(1,1,1)
-        b.Font = Enum.Font.SourceSans
-        b.TextSize = 11
-        b.BorderSizePixel = 0
-        local shortName = data.name or (path:match("[^%.%[%]]+$") or path):gsub('^%["', ''):gsub('"%]$', '')
-        b.Text = " [X] " .. shortName
-        b.MouseButton1Click:Connect(function() 
-            currentSelectionGUID = data.guid
-            updateDetailsView()
-            refreshSelectionColors() 
-        end)
-        b.Parent = RedListScroll
-    end
+    -- Используем task.spawn, чтобы избежать ошибки "current thread cannot access instance"
+    task.spawn(function()
+        if not RedListScroll then return end
+        for _, v in pairs(RedListScroll:GetChildren()) do 
+            if v:IsA("TextButton") then v:Destroy() end 
+        end
+        for path, data in pairs(ManualBannedPaths) do
+            local b = Instance.new("TextButton")
+            b.Size = UDim2.new(1, -6, 0, 25)
+            b:SetAttribute("GUID", data.guid)
+            b.BackgroundColor3 = (currentSelectionGUID == data.guid) and Color3.fromRGB(100, 50, 200) or Color3.fromRGB(100, 35, 35)
+            b.TextColor3 = Color3.new(1,1,1)
+            b.Font = Enum.Font.SourceSans
+            b.TextSize = 11
+            b.BorderSizePixel = 0
+            local shortName = data.name or (path:match("[^%.%[%]]+$") or path):gsub('^%["', ''):gsub('"%]$', '')
+            b.Text = " [X] " .. shortName
+            b.MouseButton1Click:Connect(function() 
+                currentSelectionGUID = data.guid
+                updateDetailsView()
+                refreshSelectionColors() 
+            end)
+            b.Parent = RedListScroll
+        end
+    end)
 end
 
 -- HEADER
@@ -307,11 +310,14 @@ local function addLog(rem, args, isSelf, typeLabel)
                 local remoteName = "Unknown"
                 pcall(function() remoteName = tostring(rem.Name) end)
                 
-                ManualBannedPaths[eventPath] = {guid = generateGUID(), name = remoteName, details = "AUTO-BANNED\n"..log, detailsPretty = "AUTO-BANNED\n"..logP}
-                local nM = {}
-                for _, m in ipairs(MainMemory) do if not (m.path == eventPath and not m.isSelf) then table.insert(nM, m) end end
-                MainMemory, lastCount, currentSelectionGUID = nM, -1, nil
-                updateRedListUI() 
+                -- Оборачиваем в task.spawn для безопасного обновления UI из хука
+                task.spawn(function()
+                    ManualBannedPaths[eventPath] = {guid = generateGUID(), name = remoteName, details = "AUTO-BANNED\n"..log, detailsPretty = "AUTO-BANNED\n"..logP}
+                    local nM = {}
+                    for _, m in ipairs(MainMemory) do if not (m.path == eventPath and not m.isSelf) then table.insert(nM, m) end end
+                    MainMemory, lastCount, currentSelectionGUID = nM, -1, nil
+                    updateRedListUI() 
+                end)
                 return 
             end
         else AntiSpamCounts[eventPath] = 0 end
@@ -431,9 +437,10 @@ local function createBotBtn(text, pos, size, color)
     return b
 end
 
-createBotBtn("COPY ARGS", UDim2.new(0, 205, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(45, 90, 45)).MouseButton1Click:Connect(function() 
+local CopyArgsBtn = createBotBtn("COPY ARGS", UDim2.new(0, 205, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(45, 90, 45))
+CopyArgsBtn.MouseButton1Click:Connect(function() 
     local a = Details.Text:match("Args:?%s*(.-)\n\nScript")
-    if a then setclipboard(a) feedback(activeFeedbacks, "COPIED!") end
+    if a then setclipboard(a) feedback(CopyArgsBtn, "COPIED!") end
 end)
 
 local SortBtn = createBotBtn("SORT: OFF", UDim2.new(0, 317, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(80, 80, 85))
@@ -443,28 +450,34 @@ SortBtn.MouseButton1Click:Connect(function()
     updateDetailsView()
 end)
 
-createBotBtn("COPY SCRIPT", UDim2.new(0, 205, 0.83, 0), nil, Color3.fromRGB(60, 60, 120)).MouseButton1Click:Connect(function() 
+local CopyScriptBtn = createBotBtn("COPY SCRIPT", UDim2.new(0, 205, 0.83, 0), nil, Color3.fromRGB(60, 60, 120))
+CopyScriptBtn.MouseButton1Click:Connect(function() 
     local s = Details.Text:match("Script:\n(.*)")
-    if s then setclipboard(s) feedback(activeFeedbacks, "COPIED!") end
+    if s then setclipboard(s) feedback(CopyScriptBtn, "COPIED!") end
 end)
 
-createBotBtn("CLEAR LOG", UDim2.new(0, 432, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(80, 80, 85)).MouseButton1Click:Connect(function()
+local ClearLogBtn = createBotBtn("CLEAR LOG", UDim2.new(0, 432, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(80, 80, 85))
+ClearLogBtn.MouseButton1Click:Connect(function()
     local nM = {}
     for _, m in ipairs(MainMemory) do if m.isSelf then table.insert(nM, m) end end
-    MainMemory, lastCount = nM, -1 feedback(activeFeedbacks, "CLEARED")
+    MainMemory, lastCount = nM, -1 
+    feedback(ClearLogBtn, "CLEARED")
 end)
 
-createBotBtn("CLEAR SELF", UDim2.new(0, 544, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(100, 80, 60)).MouseButton1Click:Connect(function()
+local ClearSelfBtn = createBotBtn("CLEAR SELF", UDim2.new(0, 544, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(100, 80, 60))
+ClearSelfBtn.MouseButton1Click:Connect(function()
     local nM = {}
     for _, m in ipairs(MainMemory) do if not m.isSelf then table.insert(nM, m) end end
-    MainMemory, lastCount = nM, -1 feedback(activeFeedbacks, "CLEARED")
+    MainMemory, lastCount = nM, -1 
+    feedback(ClearSelfBtn, "CLEARED")
 end)
 
-createBotBtn("EXECUTE", UDim2.new(0, 432, 0.83, 0), nil, Color3.fromRGB(120, 60, 60)).MouseButton1Click:Connect(function() 
+local ExecBtn = createBotBtn("EXECUTE", UDim2.new(0, 432, 0.83, 0), nil, Color3.fromRGB(120, 60, 60))
+ExecBtn.MouseButton1Click:Connect(function() 
     local s = Details.Text:match("Script:\n(.*)") or Details.Text
     if s and s ~= "" then 
         local f, err = loadstring(s)
-        if f then task.spawn(f) feedback(activeFeedbacks, "DONE!") else feedback(activeFeedbacks, "ERROR!") end 
+        if f then task.spawn(f) feedback(ExecBtn, "DONE!") else feedback(ExecBtn, "ERROR!") end 
     end 
 end)
 
