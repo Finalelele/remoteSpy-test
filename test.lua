@@ -1,10 +1,9 @@
--- [[ KRALLDEN SPY v9.4.9 - CLEAN VERSION WITH ANTI-HIDE & FEEDBACK FIX ]] --
+-- [[ KRALLDEN SPY v9.4.9 - FULL FIX VERSION ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
-local TextService = game:GetService("TextService")
 
--- Очистка старых версий (безопасно для Delta)
+-- Очистка старых версий
 if playerGui:FindFirstChild("KralldenSpyUI") then playerGui.KralldenSpyUI:Destroy() end
 for _, gui in ipairs(game.CoreGui:GetChildren()) do
     pcall(function()
@@ -20,7 +19,7 @@ local targetParent = (gethui and gethui()) or (game:GetService("CoreGui"):FindFi
 local ScreenGui = Instance.new("ScreenGui", targetParent)
 ScreenGui.Name = "KralldenSpyUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 10; ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Anti-Hide (Оптимизированный цикл)
+-- Anti-Hide
 task.spawn(function()
     while task.wait(1) do 
         if ScreenGui and ScreenGui.Parent and not ScreenGui.Enabled then
@@ -146,35 +145,36 @@ ContentFrame.Name = "ContentFrame"; ContentFrame.Size = UDim2.new(1, 0, 1, -35);
 
 Scroll = Instance.new("ScrollingFrame", ContentFrame)
 Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 190, 1, -16); Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Scroll.BorderSizePixel = 0
-Scroll.ScrollBarThickness = 4
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
--- ИСПРАВЛЕННЫЙ БЛОК DETAILS (Scroll + Auto-Sizing)
+-- ФИКС ОКНА DETAILS (Скролл и невидимая стена)
 DetailsScroll = Instance.new("ScrollingFrame", ContentFrame)
+DetailsScroll.Name = "DetailsScroll"
 DetailsScroll.Position = UDim2.new(0, 205, 0, 8)
 DetailsScroll.Size = UDim2.new(0, 448, 0, 255)
 DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
 DetailsScroll.BorderSizePixel = 0
 DetailsScroll.ScrollBarThickness = 6
 DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+DetailsScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Движок будет сам расширять холст
 
-local DetailsPadding = Instance.new("UIPadding", DetailsScroll)
-DetailsPadding.PaddingTop = UDim.new(0, 8)
-DetailsPadding.PaddingBottom = UDim.new(0, 8)
-DetailsPadding.PaddingLeft = UDim.new(0, 8)
-DetailsPadding.PaddingRight = UDim.new(0, 8)
+local dLayout = Instance.new("UIListLayout", DetailsScroll)
+dLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Используем TextLabel для надежного отображения, а TextBox для копирования
+local dPadding = Instance.new("UIPadding", DetailsScroll)
+dPadding.PaddingLeft = UDim.new(0, 8); dPadding.PaddingRight = UDim.new(0, 8)
+dPadding.PaddingTop = UDim.new(0, 8); dPadding.PaddingBottom = UDim.new(0, 8)
+
 Details = Instance.new("TextBox", DetailsScroll)
-Details.Name = "LogDisplay"
-Details.Size = UDim2.new(1, 0, 0, 0) 
-Details.AutomaticSize = Enum.AutomaticSize.Y -- Заставляет бокс расти вниз бесконечно
+Details.Name = "DetailsText"
+Details.Size = UDim2.new(1, 0, 0, 0) -- Высота 0, чтобы AutomaticSize работал корректно
+Details.AutomaticSize = Enum.AutomaticSize.Y
 Details.BackgroundTransparency = 1
 Details.TextColor3 = Color3.new(1, 1, 1)
 Details.MultiLine = true
 Details.TextWrapped = true
-Details.TextEditable = true -- Оставляем возможность выделения/правки
+Details.TextEditable = true
 Details.Font = Enum.Font.Code
 Details.TextSize = 12
 Details.TextXAlignment = Enum.TextXAlignment.Left
