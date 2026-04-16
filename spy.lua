@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.4.9 - CLEAN VERSION WITH ANTI-HIDE & FEEDBACK FIX ]] --
+-- [[ KRALLDEN SPY v9.4.5 - CLEAN VERSION WITH ANTI-HIDE & FEEDBACK FIX ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -121,10 +121,10 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.4.9"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.4.5"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
-MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
+MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
 
 local function createHeaderBtn(text, offset, color, sizeX)
     local b = Instance.new("TextButton", Header)
@@ -147,28 +147,8 @@ Scroll = Instance.new("ScrollingFrame", ContentFrame)
 Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 190, 1, -16); Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Scroll.BorderSizePixel = 0
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
-DetailsScroll = Instance.new("ScrollingFrame", ContentFrame)
-DetailsScroll.Position = UDim2.new(0, 205, 0, 8)
-DetailsScroll.Size = UDim2.new(0, 448, 0, 255)
-DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-DetailsScroll.BorderSizePixel = 0
-DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-DetailsScroll.ScrollBarThickness = 6
-
-Details = Instance.new("TextBox", DetailsScroll)
-Details.Size = UDim2.new(1, -10, 0, 0)
-Details.Position = UDim2.new(0, 5, 0, 5)
-Details.AutomaticSize = Enum.AutomaticSize.Y
-Details.BackgroundTransparency = 1
-Details.TextColor3 = Color3.new(1, 1, 1)
-Details.MultiLine = true
-Details.TextWrapped = true
-Details.TextEditable = true
-Details.Font = Enum.Font.Code
-Details.TextSize = 12
-Details.TextXAlignment = 0
-Details.TextYAlignment = 0
-Details.ClearTextOnFocus = false
+DetailsScroll = Instance.new("ScrollingFrame", ContentFrame); DetailsScroll.Position = UDim2.new(0, 205, 0, 8); DetailsScroll.Size = UDim2.new(0, 448, 0, 255); DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12); DetailsScroll.BorderSizePixel = 0; DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; DetailsScroll.ScrollBarThickness = 6
+Details = Instance.new("TextBox", DetailsScroll); Details.Size = UDim2.new(1, -10, 0, 0); Details.Position = UDim2.new(0, 5, 0, 5); Details.AutomaticSize = Enum.AutomaticSize.Y; Details.BackgroundTransparency = 1; Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = true; Details.Font = Enum.Font.Code; Details.TextSize = 12; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.ClearTextOnFocus = false
 
 local BanListTitle = Instance.new("TextLabel", ContentFrame)
 BanListTitle.Size = UDim2.new(0, 150, 0, 20); BanListTitle.Position = UDim2.new(0, 662, 0, 125); BanListTitle.BackgroundTransparency = 1
@@ -206,7 +186,7 @@ local function addLog(rem, args, isSelf, typeLabel)
     if not isSelf and ManualBannedPaths[eventPath] then return end
 
     local function parseValue(v, d, pretty, indent)
-        d = d or 0; indent = indent or 0; if d > 8 then return "..." end
+        d = d or 0; indent = indent or 0; if d > 128 then return "..." end -- УВЕЛИЧЕНА ГЛУБИНА ДО 128
         local t = type(v)
         if t == "string" then return '"' .. v .. '"'
         elseif t == "table" then
@@ -216,7 +196,7 @@ local function addLog(rem, args, isSelf, typeLabel)
             if pretty then res = res .. "\n" end
             local i = 0
             for k, val in pairs(v) do
-                i = i + 1; if i > 400 then res = res .. (pretty and string.rep("  ", indent + 1) or "") .. "..." .. (pretty and "\n" or " ") break end
+                i = i + 1; if i > 100000 then res = res .. (pretty and string.rep("  ", indent + 1) or "") .. "..." .. (pretty and "\n" or " ") break end -- УВЕЛИЧЕН ЛИМИТ ДО 100к
                 local vStr = parseValue(val, d + 1, pretty, indent + 1)
                 if isArray then
                     res = res .. (pretty and string.rep("  ", indent + 1) or "") .. vStr .. "," .. (pretty and "\n" or " ")
