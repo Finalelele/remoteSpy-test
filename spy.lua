@@ -1,9 +1,9 @@
--- [[ KRALLDEN SPY v9.4.5 - CLEAN VERSION WITH ANTI-HIDE & FEEDBACK FIX ]] --
+-- [[ KRALLDEN SPY v9.4.9 - FULL FIX VERSION ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Очистка старых версий (безопасно для Delta)
+-- Очистка старых версий
 if playerGui:FindFirstChild("KralldenSpyUI") then playerGui.KralldenSpyUI:Destroy() end
 for _, gui in ipairs(game.CoreGui:GetChildren()) do
     pcall(function()
@@ -19,7 +19,7 @@ local targetParent = (gethui and gethui()) or (game:GetService("CoreGui"):FindFi
 local ScreenGui = Instance.new("ScreenGui", targetParent)
 ScreenGui.Name = "KralldenSpyUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 10; ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Anti-Hide (Оптимизированный цикл)
+-- Anti-Hide
 task.spawn(function()
     while task.wait(1) do 
         if ScreenGui and ScreenGui.Parent and not ScreenGui.Enabled then
@@ -44,7 +44,7 @@ local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.ra
 
 local RedListScroll, Scroll, DetailsScroll, Details, ContentFrame
 
--- Функция фидбека (Исправлена)
+-- Функция фидбека
 local activeFeedbacks = {}
 local function feedback(button, tempText)
     if not button or activeFeedbacks[button] then return end
@@ -121,7 +121,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.4.5"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.4.9"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -147,13 +147,39 @@ Scroll = Instance.new("ScrollingFrame", ContentFrame)
 Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 190, 1, -16); Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Scroll.BorderSizePixel = 0
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
-DetailsScroll = Instance.new("ScrollingFrame", ContentFrame); DetailsScroll.Position = UDim2.new(0, 205, 0, 8); DetailsScroll.Size = UDim2.new(0, 448, 0, 255); DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12); DetailsScroll.BorderSizePixel = 0; DetailsScroll.ScrollBarThickness = 6
-Details = Instance.new("TextBox", DetailsScroll); Details.Size = UDim2.new(1, -10, 0, 0); Details.Position = UDim2.new(0, 5, 0, 5); Details.AutomaticSize = Enum.AutomaticSize.Y; Details.BackgroundTransparency = 1; Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = true; Details.Font = Enum.Font.Code; Details.TextSize = 12; Details.TextXAlignment = Enum.TextXAlignment.Left; Details.TextYAlignment = Enum.TextYAlignment.Top; Details.ClearTextOnFocus = false
+-- ФИКС ОКНА DETAILS (Скролл и невидимая стена)
+DetailsScroll = Instance.new("ScrollingFrame", ContentFrame)
+DetailsScroll.Name = "DetailsScroll"
+DetailsScroll.Position = UDim2.new(0, 205, 0, 8)
+DetailsScroll.Size = UDim2.new(0, 448, 0, 255)
+DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+DetailsScroll.BorderSizePixel = 0
+DetailsScroll.ScrollBarThickness = 6
+DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+DetailsScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Движок будет сам расширять холст
 
--- Автообновление CanvasSize для полного скролла
-Details:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-    DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, Details.AbsoluteSize.Y + 10)
-end)
+local dLayout = Instance.new("UIListLayout", DetailsScroll)
+dLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local dPadding = Instance.new("UIPadding", DetailsScroll)
+dPadding.PaddingLeft = UDim.new(0, 8); dPadding.PaddingRight = UDim.new(0, 8)
+dPadding.PaddingTop = UDim.new(0, 8); dPadding.PaddingBottom = UDim.new(0, 8)
+
+Details = Instance.new("TextBox", DetailsScroll)
+Details.Name = "DetailsText"
+Details.Size = UDim2.new(1, 0, 0, 0) -- Высота 0, чтобы AutomaticSize работал корректно
+Details.AutomaticSize = Enum.AutomaticSize.Y
+Details.BackgroundTransparency = 1
+Details.TextColor3 = Color3.new(1, 1, 1)
+Details.MultiLine = true
+Details.TextWrapped = true
+Details.TextEditable = true
+Details.Font = Enum.Font.Code
+Details.TextSize = 12
+Details.TextXAlignment = Enum.TextXAlignment.Left
+Details.TextYAlignment = Enum.TextYAlignment.Top
+Details.ClearTextOnFocus = false
 
 local BanListTitle = Instance.new("TextLabel", ContentFrame)
 BanListTitle.Size = UDim2.new(0, 150, 0, 20); BanListTitle.Position = UDim2.new(0, 662, 0, 125); BanListTitle.BackgroundTransparency = 1
@@ -191,7 +217,7 @@ local function addLog(rem, args, isSelf, typeLabel)
     if not isSelf and ManualBannedPaths[eventPath] then return end
 
     local function parseValue(v, d, pretty, indent)
-        d = d or 0; indent = indent or 0; if d > 128 then return "..." end -- УВЕЛИЧЕНА ГЛУБИНА ДО 128
+        d = d or 0; indent = indent or 0; if d > 128 then return "..." end
         local t = type(v)
         if t == "string" then return '"' .. v .. '"'
         elseif t == "table" then
@@ -201,7 +227,7 @@ local function addLog(rem, args, isSelf, typeLabel)
             if pretty then res = res .. "\n" end
             local i = 0
             for k, val in pairs(v) do
-                i = i + 1; if i > 100000 then res = res .. (pretty and string.rep("  ", indent + 1) or "") .. "..." .. (pretty and "\n" or " ") break end -- УВЕЛИЧЕН ЛИМИТ ДО 100к
+                i = i + 1; if i > 100000 then res = res .. (pretty and string.rep("  ", indent + 1) or "") .. "..." .. (pretty and "\n" or " ") break end
                 local vStr = parseValue(val, d + 1, pretty, indent + 1)
                 if isArray then
                     res = res .. (pretty and string.rep("  ", indent + 1) or "") .. vStr .. "," .. (pretty and "\n" or " ")
@@ -283,10 +309,7 @@ local function addLog(rem, args, isSelf, typeLabel)
         fullText = logDetails, fullTextPretty = logDetailsPretty, path = eventPath, argsStr = finalArgsStr 
     }
     
-    -- РУЧНОЙ СДВИГ ТАБЛИЦЫ
-    for i = #MainMemory, 1, -1 do
-        MainMemory[i + 1] = MainMemory[i]
-    end
+    for i = #MainMemory, 1, -1 do MainMemory[i + 1] = MainMemory[i] end
     MainMemory[1] = data
 end
 
@@ -387,7 +410,7 @@ task.spawn(function()
             b.Text = string.format("[%s]%s %s", d.type, (d.isSelf and " [S]" or ""), d.name)
             b:SetAttribute("GUID", d.guid); b:SetAttribute("IsSelf", d.isSelf)
             b.BackgroundColor3 = (currentSelectionGUID == d.guid) and Color3.fromRGB(100, 50, 200) or (d.isSelf and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(40, 40, 45))
-            b.TextColor3 = Color3.new(1,1,1); b.BorderSizePixel = 0
+            b.TextColor3 = Color3.new(1,1,1); b.BorderSizePixel = 0; b.Font = Enum.Font.SourceSansBold; b.TextSize = 12
             b.MouseButton1Click:Connect(function()
                 currentSelectionGUID = d.guid; updateDetailsView(); refreshSelectionColors()
             end)
