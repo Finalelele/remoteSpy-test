@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.4.5 - FULL FIX VERSION ]] --
+-- [[ KRALLDEN SPY v9.5.0 - TEXTLABEL STABILITY FIX ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -121,7 +121,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.4.5"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.5.0"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -147,7 +147,7 @@ Scroll = Instance.new("ScrollingFrame", ContentFrame)
 Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 190, 1, -16); Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Scroll.BorderSizePixel = 0
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
--- ФИКС ОКНА DETAILS (Скролл и невидимая стена)
+-- ФИКС DETAILS (Переход на TextLabel + UIListLayout)
 DetailsScroll = Instance.new("ScrollingFrame", ContentFrame)
 DetailsScroll.Name = "DetailsScroll"
 DetailsScroll.Position = UDim2.new(0, 205, 0, 8)
@@ -156,30 +156,28 @@ DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
 DetailsScroll.BorderSizePixel = 0
 DetailsScroll.ScrollBarThickness = 6
 DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-DetailsScroll.ScrollingDirection = Enum.ScrollingDirection.Y
-DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Движок будет сам расширять холст
+DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
-local dLayout = Instance.new("UIListLayout", DetailsScroll)
-dLayout.SortOrder = Enum.SortOrder.LayoutOrder
+local detailList = Instance.new("UIListLayout", DetailsScroll)
+detailList.SortOrder = Enum.SortOrder.LayoutOrder
+detailList.Padding = UDim.new(0, 5)
 
-local dPadding = Instance.new("UIPadding", DetailsScroll)
-dPadding.PaddingLeft = UDim.new(0, 8); dPadding.PaddingRight = UDim.new(0, 8)
-dPadding.PaddingTop = UDim.new(0, 8); dPadding.PaddingBottom = UDim.new(0, 8)
+local detailPad = Instance.new("UIPadding", DetailsScroll)
+detailPad.PaddingLeft = UDim.new(0, 10); detailPad.PaddingRight = UDim.new(0, 10)
+detailPad.PaddingTop = UDim.new(0, 10); detailPad.PaddingBottom = UDim.new(0, 10)
 
-Details = Instance.new("TextBox", DetailsScroll)
-Details.Name = "DetailsText"
-Details.Size = UDim2.new(1, 0, 0, 0) -- Высота 0, чтобы AutomaticSize работал корректно
+Details = Instance.new("TextLabel", DetailsScroll)
+Details.Name = "DetailsLabel"
+Details.Size = UDim2.new(1, 0, 0, 0)
 Details.AutomaticSize = Enum.AutomaticSize.Y
 Details.BackgroundTransparency = 1
 Details.TextColor3 = Color3.new(1, 1, 1)
-Details.MultiLine = true
 Details.TextWrapped = true
-Details.TextEditable = true
 Details.Font = Enum.Font.Code
-Details.TextSize = 12
+Details.TextSize = 13
 Details.TextXAlignment = Enum.TextXAlignment.Left
 Details.TextYAlignment = Enum.TextYAlignment.Top
-Details.ClearTextOnFocus = false
+Details.Text = ""
 
 local BanListTitle = Instance.new("TextLabel", ContentFrame)
 BanListTitle.Size = UDim2.new(0, 150, 0, 20); BanListTitle.Position = UDim2.new(0, 662, 0, 125); BanListTitle.BackgroundTransparency = 1
@@ -197,7 +195,6 @@ local function getSafePath(obj)
         while t and t ~= game do 
             local n = tostring(t.Name); 
             local safeName = (n:match("^%d") or n:match("[%s%W]")) and '["'..n..'"]' or n
-            
             if p == "" then p = safeName
             else
                 if safeName:sub(1,1) == "[" then p = safeName .. "." .. p
@@ -212,7 +209,6 @@ end
 
 local function addLog(rem, args, isSelf, typeLabel)
     if (typeLabel == "FS" and not spyFS) or (typeLabel == "FC" and not spyFC) or (typeLabel == "IS" and not spyIS) then return end
-    
     local eventPath = getSafePath(rem)
     if not isSelf and ManualBannedPaths[eventPath] then return end
 
@@ -236,11 +232,8 @@ local function addLog(rem, args, isSelf, typeLabel)
                     res = res .. (pretty and string.rep("  ", indent + 1) or "") .. key .. " = " .. vStr .. "," .. (pretty and "\n" or " ")
                 end
             end
-            if pretty then
-                res = res:gsub(",\n$", "\n") .. string.rep("  ", indent) .. "}"
-            else
-                res = res:gsub(", $", "") .. "}"
-            end
+            if pretty then res = res:gsub(",\n$", "\n") .. string.rep("  ", indent) .. "}"
+            else res = res:gsub(", $", "") .. "}" end
             return res == "{}" and "{}" or res
         elseif t == "userdata" then
             local tn = typeof(v)
@@ -274,15 +267,14 @@ local function addLog(rem, args, isSelf, typeLabel)
             end
         end
     end
-
     if alreadyExists then return end
 
     local methodName = (typeLabel == "IS" and "InvokeServer" or (typeLabel == "FC" and "FireClient" or "FireServer"))
     local displayArgs = (finalArgsStr == "" and "None" or finalArgsStr)
     local displayArgsPretty = (finalArgsStrPretty == "" and "None" or "\n" .. finalArgsStrPretty)
 
-    local logDetails = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, displayArgs, eventPath, methodName, finalArgsStr)
-    local logDetailsPretty = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, displayArgsPretty, eventPath, methodName, finalArgsStr)
+    local logDetails = string.format("Type: %s\nPath: %s\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, displayArgs, eventPath, methodName, finalArgsStr)
+    local logDetailsPretty = string.format("Type: %s\nPath: %s\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, displayArgsPretty, eventPath, methodName, finalArgsStr)
 
     -- ANTI-SPAM
     if not isSelf and not controlMode and antiSpam then
@@ -295,9 +287,7 @@ local function addLog(rem, args, isSelf, typeLabel)
                     detailsPretty = "AUTO-BANNED BY ANTI-SPAM\n\n" .. logDetailsPretty
                 }
                 local nM = {}
-                for _, m in ipairs(MainMemory) do 
-                    if not (m.path == eventPath and not m.isSelf) then nM[#nM + 1] = m end 
-                end
+                for _, m in ipairs(MainMemory) do if not (m.path == eventPath and not m.isSelf) then nM[#nM + 1] = m end end
                 MainMemory = nM; lastCount = -1; currentSelectionGUID = nil; updateRedListUI(); return 
             end
         else AntiSpamCounts[eventPath] = 0 end
@@ -308,7 +298,6 @@ local function addLog(rem, args, isSelf, typeLabel)
         guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf, 
         fullText = logDetails, fullTextPretty = logDetailsPretty, path = eventPath, argsStr = finalArgsStr 
     }
-    
     for i = #MainMemory, 1, -1 do MainMemory[i + 1] = MainMemory[i] end
     MainMemory[1] = data
 end
@@ -400,11 +389,9 @@ task.spawn(function()
     while task.wait(0.5) do
         if not ContentFrame or not ContentFrame.Visible or #MainMemory == lastCount then continue end
         lastCount = #MainMemory; for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-        
         local sortedMemory = {}
         for _, d in ipairs(MainMemory) do if d.isSelf then sortedMemory[#sortedMemory + 1] = d end end
         for _, d in ipairs(MainMemory) do if not d.isSelf then sortedMemory[#sortedMemory + 1] = d end end
-
         for i, d in ipairs(sortedMemory) do
             local b = Instance.new("TextButton", Scroll); b.Size = UDim2.new(1, -6, 0, 30); b.LayoutOrder = i
             b.Text = string.format("[%s]%s %s", d.type, (d.isSelf and " [S]" or ""), d.name)
@@ -422,7 +409,6 @@ local function createBotBtn(text, pos, size, color)
     local b = Instance.new("TextButton", ContentFrame); b.Size = size or UDim2.new(0, 220, 0, 58); b.Position = pos; b.BackgroundColor3 = color; b.Text = text; b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 14; b.BorderSizePixel = 0; return b
 end
 
--- Нижние кнопки
 local CopyArgsBtn = createBotBtn("COPY ARGS", UDim2.new(0, 205, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(45, 90, 45))
 CopyArgsBtn.MouseButton1Click:Connect(function() 
     local a = Details.Text:match("Args:?%s*(.-)\n\nScript"); 
@@ -461,8 +447,7 @@ local ExecuteBtn = createBotBtn("EXECUTE", UDim2.new(0, 432, 0.83, 0), nil, Colo
 ExecuteBtn.MouseButton1Click:Connect(function() 
     local s = Details.Text:match("Script:\n(.*)") or Details.Text
     if s and s ~= "" then 
-        local f = loadstring(s); 
-        if f then task.spawn(f); feedback(ExecuteBtn, "EXECUTED!") end 
+        local f = loadstring(s); if f then task.spawn(f); feedback(ExecuteBtn, "EXECUTED!") end 
     end 
 end)
 
