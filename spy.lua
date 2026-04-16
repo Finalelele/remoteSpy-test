@@ -2,6 +2,7 @@
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+local TextService = game:GetService("TextService")
 
 -- Очистка старых версий
 if playerGui:FindFirstChild("KralldenSpyUI") then 
@@ -99,20 +100,25 @@ local function refreshSelectionColors()
     end
 end
 
--- ИСПРАВЛЕННАЯ ФУНКЦИЯ СКРОЛЛА (БЕЗ КОНФЛИКТОВ)
 local function forceUpdateCanvas()
-    task.wait() -- Ждем один кадр для обновления TextBounds
-    if Details and DetailsScroll then
-        local textHeight = Details.TextBounds.Y
-        local padding = 20
-        
-        -- Вручную задаем высоту TextBox, чтобы не зависеть от AutomaticSize
-        Details.Size = UDim2.new(1, 0, 0, textHeight)
-        
-        -- Устанавливаем размер скролла точно под текст
-        DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, textHeight + padding)
-        DetailsScroll.CanvasPosition = Vector2.new(0, 0)
-    end
+    if not Details or not DetailsScroll then return end
+
+    local width = DetailsScroll.AbsoluteSize.X - 20 -- padding
+    if width <= 0 then return end
+
+    local text = Details.Text ~= "" and Details.Text or " "
+
+    local size = TextService:GetTextSize(
+        text,
+        Details.TextSize,
+        Details.Font,
+        Vector2.new(width, math.huge)
+    )
+
+    local textHeight = size.Y + 10
+
+    Details.Size = UDim2.new(1, 0, 0, textHeight)
+    DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, textHeight + 20)
 end
 
 local function updateDetailsView()
@@ -262,8 +268,6 @@ DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
 DetailsScroll.BorderSizePixel = 0
 DetailsScroll.ScrollBarThickness = 6
 DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-
--- ВАЖНО: Никакого UIListLayout здесь больше нет!
 
 local detailPad = Instance.new("UIPadding", DetailsScroll)
 detailPad.PaddingLeft = UDim.new(0, 10)
