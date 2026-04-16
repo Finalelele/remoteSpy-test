@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.4.8 - CLEAN VERSION WITH ANTI-HIDE & FEEDBACK FIX ]] --
+-- [[ KRALLDEN SPY v9.4.5 - CLEAN VERSION WITH ANTI-HIDE & FEEDBACK FIX ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -38,10 +38,11 @@ local selfMode, controlMode, antiSpam = true, true, true
 local spyFS, spyFC, spyIS = true, false, false
 local currentSelectionGUID, lastCount = nil, 0
 local isMin = false
+local sortArgs = false
 
 local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.random(1, 100000)) end
 
-local RedListScroll, Scroll, Details, ContentFrame
+local RedListScroll, Scroll, DetailsScroll, Details, ContentFrame
 
 -- Функция фидбека (Исправлена)
 local activeFeedbacks = {}
@@ -75,6 +76,25 @@ local function refreshSelectionColors()
     end
 end
 
+local function updateDetailsView()
+    if not currentSelectionGUID then
+        Details.Text = ""
+        return
+    end
+    for _, d in ipairs(MainMemory) do
+        if d.guid == currentSelectionGUID then
+            Details.Text = sortArgs and d.fullTextPretty or d.fullText
+            return
+        end
+    end
+    for _, data in pairs(ManualBannedPaths) do
+        if data.guid == currentSelectionGUID then
+            Details.Text = sortArgs and (data.detailsPretty or data.details) or data.details
+            return
+        end
+    end
+end
+
 local function updateRedListUI()
     if not RedListScroll then return end
     for _, v in pairs(RedListScroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
@@ -89,7 +109,7 @@ local function updateRedListUI()
         
         b.MouseButton1Click:Connect(function() 
             currentSelectionGUID = data.guid
-            Details.Text = data.details 
+            updateDetailsView()
             refreshSelectionColors()
         end)
     end
@@ -101,7 +121,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.4.8"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.4.5"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -127,8 +147,13 @@ Scroll = Instance.new("ScrollingFrame", ContentFrame)
 Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 190, 1, -16); Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Scroll.BorderSizePixel = 0
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
-Details = Instance.new("TextBox", ContentFrame)
-Details.Position = UDim2.new(0, 205, 0, 8); Details.Size = UDim2.new(0, 448, 0, 255); Details.BackgroundColor3 = Color3.fromRGB(10, 10, 12); Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = true; Details.Font = Enum.Font.Code; Details.TextSize = 12; Details.TextXAlignment = 0; Details.TextYAlignment = 0; Details.ClearTextOnFocus = false
+DetailsScroll = Instance.new("ScrollingFrame", ContentFrame); DetailsScroll.Position = UDim2.new(0, 205, 0, 8); DetailsScroll.Size = UDim2.new(0, 448, 0, 255); DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12); DetailsScroll.BorderSizePixel = 0; DetailsScroll.ScrollBarThickness = 6
+Details = Instance.new("TextBox", DetailsScroll); Details.Size = UDim2.new(1, -10, 0, 0); Details.Position = UDim2.new(0, 5, 0, 5); Details.AutomaticSize = Enum.AutomaticSize.Y; Details.BackgroundTransparency = 1; Details.TextColor3 = Color3.new(1, 1, 1); Details.MultiLine = true; Details.TextWrapped = true; Details.TextEditable = true; Details.Font = Enum.Font.Code; Details.TextSize = 12; Details.TextXAlignment = Enum.TextXAlignment.Left; Details.TextYAlignment = Enum.TextYAlignment.Top; Details.ClearTextOnFocus = false
+
+-- Автообновление CanvasSize для полного скролла
+Details:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+    DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, Details.AbsoluteSize.Y + 10)
+end)
 
 local BanListTitle = Instance.new("TextLabel", ContentFrame)
 BanListTitle.Size = UDim2.new(0, 150, 0, 20); BanListTitle.Position = UDim2.new(0, 662, 0, 125); BanListTitle.BackgroundTransparency = 1
@@ -165,22 +190,32 @@ local function addLog(rem, args, isSelf, typeLabel)
     local eventPath = getSafePath(rem)
     if not isSelf and ManualBannedPaths[eventPath] then return end
 
-    local function parseValue(v, d)
-        d = d or 0; if d > 4 then return "..." end
+    local function parseValue(v, d, pretty, indent)
+        d = d or 0; indent = indent or 0; if d > 128 then return "..." end -- УВЕЛИЧЕНА ГЛУБИНА ДО 128
         local t = type(v)
         if t == "string" then return '"' .. v .. '"'
         elseif t == "table" then
             local isArray, count = true, 0
             for k, val in pairs(v) do count = count + 1; if type(k) ~= "number" or k ~= count then isArray = false break end end
-            local res, i = "{", 0
-            for k, val in pairs(v) do i = i + 1; if i > 15 then res = res .. "... " break end
-                if isArray then res = res .. parseValue(val, d + 1) .. ", "
-                else local key = type(k) == "number" and "["..k.."]" or '["'..tostring(k)..'"]'
-                    res = res .. key .. " = " .. parseValue(val, d + 1) .. ", "
+            local res = "{"
+            if pretty then res = res .. "\n" end
+            local i = 0
+            for k, val in pairs(v) do
+                i = i + 1; if i > 100000 then res = res .. (pretty and string.rep("  ", indent + 1) or "") .. "..." .. (pretty and "\n" or " ") break end -- УВЕЛИЧЕН ЛИМИТ ДО 100к
+                local vStr = parseValue(val, d + 1, pretty, indent + 1)
+                if isArray then
+                    res = res .. (pretty and string.rep("  ", indent + 1) or "") .. vStr .. "," .. (pretty and "\n" or " ")
+                else
+                    local key = type(k) == "number" and "["..k.."]" or '["'..tostring(k)..'"]'
+                    res = res .. (pretty and string.rep("  ", indent + 1) or "") .. key .. " = " .. vStr .. "," .. (pretty and "\n" or " ")
                 end
             end
-            local result = res:gsub(", $", "") .. "}"
-            return result == "}" and "{}" or result
+            if pretty then
+                res = res:gsub(",\n$", "\n") .. string.rep("  ", indent) .. "}"
+            else
+                res = res:gsub(", $", "") .. "}"
+            end
+            return res == "{}" and "{}" or res
         elseif t == "userdata" then
             local tn = typeof(v)
             if tn == "CFrame" then return "CFrame.new(" .. tostring(v) .. ")"
@@ -191,10 +226,14 @@ local function addLog(rem, args, isSelf, typeLabel)
         else return tostring(v) end
     end
 
-    local argList = {}
-    for i, v in ipairs(args) do argList[#argList + 1] = parseValue(v) end
+    local argList, argListPretty = {}, {}
+    for i, v in ipairs(args) do 
+        argList[#argList + 1] = parseValue(v, 0, false, 0) 
+        argListPretty[#argListPretty + 1] = parseValue(v, 0, true, 0)
+    end
     
     local finalArgsStr = table.concat(argList, ", ")
+    local finalArgsStrPretty = table.concat(argListPretty, ",\n")
     
     local alreadyExists = false
     for _, m in ipairs(MainMemory) do
@@ -214,14 +253,21 @@ local function addLog(rem, args, isSelf, typeLabel)
 
     local methodName = (typeLabel == "IS" and "InvokeServer" or (typeLabel == "FC" and "FireClient" or "FireServer"))
     local displayArgs = (finalArgsStr == "" and "None" or finalArgsStr)
+    local displayArgsPretty = (finalArgsStrPretty == "" and "None" or "\n" .. finalArgsStrPretty)
+
     local logDetails = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, displayArgs, eventPath, methodName, finalArgsStr)
+    local logDetailsPretty = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, displayArgsPretty, eventPath, methodName, finalArgsStr)
 
     -- ANTI-SPAM
     if not isSelf and not controlMode and antiSpam then
         if (tick() - (AntiSpamCooldowns[eventPath] or 0)) < 0.4 then
             AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
             if AntiSpamCounts[eventPath] >= 4 then
-                ManualBannedPaths[eventPath] = {guid = generateGUID(), details = "AUTO-BANNED BY ANTI-SPAM\n\n" .. logDetails}
+                ManualBannedPaths[eventPath] = {
+                    guid = generateGUID(), 
+                    details = "AUTO-BANNED BY ANTI-SPAM\n\n" .. logDetails,
+                    detailsPretty = "AUTO-BANNED BY ANTI-SPAM\n\n" .. logDetailsPretty
+                }
                 local nM = {}
                 for _, m in ipairs(MainMemory) do 
                     if not (m.path == eventPath and not m.isSelf) then nM[#nM + 1] = m end 
@@ -232,7 +278,10 @@ local function addLog(rem, args, isSelf, typeLabel)
         AntiSpamCooldowns[eventPath] = tick()
     end
 
-    local data = { guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf, fullText = logDetails, path = eventPath, argsStr = finalArgsStr }
+    local data = { 
+        guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf, 
+        fullText = logDetails, fullTextPretty = logDetailsPretty, path = eventPath, argsStr = finalArgsStr 
+    }
     
     -- РУЧНОЙ СДВИГ ТАБЛИЦЫ
     for i = #MainMemory, 1, -1 do
@@ -293,7 +342,11 @@ BlockBtn.MouseButton1Click:Connect(function()
             if d.guid == currentSelectionGUID and not d.isSelf then
                 local p = d.path
                 if p then
-                    ManualBannedPaths[p] = {guid = d.guid, details = "MANUAL BANNED:\n\n" .. d.fullText}
+                    ManualBannedPaths[p] = {
+                        guid = d.guid, 
+                        details = "MANUAL BANNED:\n\n" .. d.fullText,
+                        detailsPretty = "MANUAL BANNED:\n\n" .. d.fullTextPretty
+                    }
                     local nM = {}
                     for _, m in ipairs(MainMemory) do 
                         if not (m.path == p and not m.isSelf) then nM[#nM+1] = m end 
@@ -336,7 +389,7 @@ task.spawn(function()
             b.BackgroundColor3 = (currentSelectionGUID == d.guid) and Color3.fromRGB(100, 50, 200) or (d.isSelf and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(40, 40, 45))
             b.TextColor3 = Color3.new(1,1,1); b.BorderSizePixel = 0
             b.MouseButton1Click:Connect(function()
-                currentSelectionGUID = d.guid; Details.Text = d.fullText; refreshSelectionColors()
+                currentSelectionGUID = d.guid; updateDetailsView(); refreshSelectionColors()
             end)
         end
     end
@@ -346,11 +399,19 @@ local function createBotBtn(text, pos, size, color)
     local b = Instance.new("TextButton", ContentFrame); b.Size = size or UDim2.new(0, 220, 0, 58); b.Position = pos; b.BackgroundColor3 = color; b.Text = text; b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 14; b.BorderSizePixel = 0; return b
 end
 
--- Нижние кнопки с исправленным фидбеком
-local CopyArgsBtn = createBotBtn("COPY ARGS", UDim2.new(0, 205, 0.68, 0), nil, Color3.fromRGB(45, 90, 45))
+-- Нижние кнопки
+local CopyArgsBtn = createBotBtn("COPY ARGS", UDim2.new(0, 205, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(45, 90, 45))
 CopyArgsBtn.MouseButton1Click:Connect(function() 
-    local a = Details.Text:match("Args: (.-)\n\nScript"); 
+    local a = Details.Text:match("Args:?%s*(.-)\n\nScript"); 
     if a then setclipboard(a); feedback(CopyArgsBtn, "ARGS COPIED!") end
+end)
+
+local SortArgsBtn = createBotBtn("SORT: OFF", UDim2.new(0, 317, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(80, 80, 85))
+SortArgsBtn.MouseButton1Click:Connect(function()
+    sortArgs = not sortArgs
+    SortArgsBtn.Text = "SORT: " .. (sortArgs and "ON" or "OFF")
+    SortArgsBtn.BackgroundColor3 = sortArgs and Color3.fromRGB(0, 170, 190) or Color3.fromRGB(80, 80, 85)
+    updateDetailsView()
 end)
 
 local CopyScriptBtn = createBotBtn("COPY SCRIPT", UDim2.new(0, 205, 0.83, 0), nil, Color3.fromRGB(60, 60, 120))
