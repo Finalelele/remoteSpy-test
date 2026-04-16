@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.5.5 - EMULATOR OPTIMIZED ]] --
+-- [[ KRALLDEN SPY v9.5.6 - MANUAL REFRESH ONLY ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -76,11 +76,12 @@ local function refreshSelectionColors()
     end
 end
 
--- ФУНКЦИЯ РАСЧЕТА ВЫСОТЫ (ОПТИМИЗИРОВАНО)
+-- ФУНКЦИЯ РАСЧЕТА ВЫСОТЫ (ТОЛЬКО ПРИ КЛИКЕ)
 local function forceUpdateCanvas()
     task.defer(function()
         if detailList and DetailsScroll then
-            DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, detailList.AbsoluteContentSize.Y + 25)
+            -- Даем небольшое время UI обновить AbsoluteContentSize
+            DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, detailList.AbsoluteContentSize.Y + 40)
         end
     end)
 end
@@ -108,7 +109,7 @@ local function updateDetailsView()
         end
     end
 
-    -- Обновляем скролл только при смене текста
+    -- РАССЧИТЫВАЕМ ВЫСОТУ ТОЛЬКО ЗДЕСЬ
     forceUpdateCanvas()
 end
 
@@ -122,7 +123,8 @@ local function updateRedListUI()
         b:SetAttribute("Path", path)
         b.BackgroundColor3 = (currentSelectionGUID == data.guid) and Color3.fromRGB(100, 50, 200) or Color3.fromRGB(100, 35, 35)
         b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSans; b.TextSize = 11; b.BorderSizePixel = 0
-        -- Фикс имени в бан листе (только имя ивента)
+        
+        -- Имя ивента без полного пути
         local shortName = data.name or (path:match("[^%.%[%]]+$") or path):gsub('^%["', ''):gsub('"%]$', '')
         b.Text = " [X] " .. shortName
         
@@ -140,7 +142,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.5.5"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.5.6"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -166,7 +168,7 @@ Scroll = Instance.new("ScrollingFrame", ContentFrame)
 Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 190, 1, -16); Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Scroll.BorderSizePixel = 0
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
--- DETAILS (ТЕПЕРЬ С РЕДАКТИРУЕМЫМ TEXTBOX)
+-- DETAILS (ТЕПЕРЬ СТАБИЛЬНЫЙ TEXTBOX)
 DetailsScroll = Instance.new("ScrollingFrame", ContentFrame)
 DetailsScroll.Name = "DetailsScroll"
 DetailsScroll.Position = UDim2.new(0, 205, 0, 8)
@@ -459,7 +461,6 @@ end)
 
 local ExecuteBtn = createBotBtn("EXECUTE", UDim2.new(0, 432, 0.83, 0), nil, Color3.fromRGB(120, 60, 60))
 ExecuteBtn.MouseButton1Click:Connect(function() 
-    -- Берёт текст напрямую из TextBox (Details), позволяя запускать измененный код
     local s = Details.Text:match("Script:\n(.*)") or Details.Text
     if s and s ~= "" then 
         local f, err = loadstring(s); 
