@@ -20,11 +20,7 @@ end
 
 local targetParent = (gethui and gethui()) or (game:GetService("CoreGui"):FindFirstChild("RobloxGui")) or playerGui
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "KralldenSpyUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.DisplayOrder = 10
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = targetParent
+ScreenGui.Name = "KralldenSpyUI"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 10; ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling; ScreenGui.Parent = targetParent
 
 -- Anti-Hide
 task.spawn(function()
@@ -36,13 +32,7 @@ task.spawn(function()
 end)
 
 local Main = Instance.new("Frame")
-Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-Main.Size = UDim2.new(0, 820, 0, 440)
-Main.Position = UDim2.new(0.5, -410, 0.5, -220)
-Main.Active = true
-Main.Draggable = true
-Main.BorderSizePixel = 0
-Main.Parent = ScreenGui
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20); Main.Size = UDim2.new(0, 820, 0, 440); Main.Position = UDim2.new(0.5, -410, 0.5, -220); Main.Active = true; Main.Draggable = true; Main.BorderSizePixel = 0; Main.Parent = ScreenGui
 
 local MainMemory, PathFilter, ManualBannedPaths = {}, {}, {}
 local AntiSpamCooldowns, AntiSpamCounts = {}, {}
@@ -159,34 +149,13 @@ end
 
 -- HEADER
 local Header = Instance.new("Frame")
-Header.Size = UDim2.new(1, 0, 0, 35)
-Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-Header.ZIndex = 10
-Header.BorderSizePixel = 0
-Header.Parent = Main
+Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Header.ZIndex = 10; Header.BorderSizePixel = 0; Header.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0, 200, 1, 0)
-Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.6.4"
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.Font = Enum.Font.SourceSansBold
-Title.TextSize = 16
-Title.ZIndex = 11
-Title.TextXAlignment = 0
-Title.Parent = Header
+Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0); Title.Text = "KRALLDEN SPY v9.6.4"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0; Title.Parent = Header
 
 local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 45, 0, 35)
-MinBtn.Position = UDim2.new(1, -45, 0, 0)
-MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180)
-MinBtn.Text = "-"
-MinBtn.TextColor3 = Color3.new(1, 1, 1)
-MinBtn.TextSize = 22
-MinBtn.ZIndex = 12
-MinBtn.BorderSizePixel = 0
-MinBtn.Parent = Header
+MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0; MinBtn.Parent = Header
 
 local function createHeaderBtn(text, offset, color, sizeX)
     local b = Instance.new("TextButton")
@@ -212,76 +181,29 @@ local BlockBtn = createHeaderBtn("BLOCK EVENT", -530, Color3.fromRGB(150, 50, 50
 BlockBtn.Visible = false
 
 ContentFrame = Instance.new("Frame")
-ContentFrame.Name = "ContentFrame"
-ContentFrame.Size = UDim2.new(1, 0, 1, -35)
-ContentFrame.Position = UDim2.new(0, 0, 0, 35)
-ContentFrame.BackgroundTransparency = 1
-ContentFrame.ClipsDescendants = true
-ContentFrame.Parent = Main
+ContentFrame.Name = "ContentFrame"; ContentFrame.Size = UDim2.new(1, 0, 1, -35); ContentFrame.Position = UDim2.new(0, 0, 0, 35); ContentFrame.BackgroundTransparency = 1; ContentFrame.ClipsDescendants = true; ContentFrame.Parent = Main
 
 Scroll = Instance.new("ScrollingFrame")
-Scroll.Position = UDim2.new(0, 8, 0, 8)
-Scroll.Size = UDim2.new(0, 190, 1, -16)
-Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-Scroll.BorderSizePixel = 0
-Scroll.ScrollBarThickness = 6
-Scroll.Parent = ContentFrame
+Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 190, 1, -16); Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Scroll.BorderSizePixel = 0; Scroll.ScrollBarThickness = 6; Scroll.Parent = ContentFrame
 
 local scrollList = Instance.new("UIListLayout")
 scrollList.SortOrder = Enum.SortOrder.LayoutOrder
 scrollList.Parent = Scroll
 
 DetailsScroll = Instance.new("ScrollingFrame")
-DetailsScroll.Name = "DetailsScroll"
-DetailsScroll.Position = UDim2.new(0, 205, 0, 8)
-DetailsScroll.Size = UDim2.new(0, 448, 0, 255)
-DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-DetailsScroll.BorderSizePixel = 0
-DetailsScroll.ScrollBarThickness = 6
-DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.None 
-DetailsScroll.Parent = ContentFrame
+DetailsScroll.Name = "DetailsScroll"; DetailsScroll.Position = UDim2.new(0, 205, 0, 8); DetailsScroll.Size = UDim2.new(0, 448, 0, 255); DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12); DetailsScroll.BorderSizePixel = 0; DetailsScroll.ScrollBarThickness = 6; DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, 0); DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.None; DetailsScroll.Parent = ContentFrame
 
 local detailPad = Instance.new("UIPadding")
-detailPad.PaddingLeft = UDim.new(0, 10)
-detailPad.PaddingRight = UDim.new(0, 10)
-detailPad.PaddingTop = UDim.new(0, 10)
-detailPad.PaddingBottom = UDim.new(0, 10)
-detailPad.Parent = DetailsScroll
+detailPad.PaddingLeft = UDim.new(0, 10); detailPad.PaddingRight = UDim.new(0, 10); detailPad.PaddingTop = UDim.new(0, 10); detailPad.PaddingBottom = UDim.new(0, 10); detailPad.Parent = DetailsScroll
 
 Details = Instance.new("TextBox")
-Details.Size = UDim2.new(1, 0, 0, 0)
-Details.BackgroundTransparency = 1
-Details.TextColor3 = Color3.new(1, 1, 1)
-Details.TextWrapped = true
-Details.MultiLine = true
-Details.ClearTextOnFocus = false
-Details.Font = Enum.Font.Code
-Details.TextSize = 13
-Details.TextXAlignment = Enum.TextXAlignment.Left
-Details.TextYAlignment = Enum.TextYAlignment.Top
-Details.Text = ""
-Details.Parent = DetailsScroll
+Details.Size = UDim2.new(1, 0, 0, 0); Details.BackgroundTransparency = 1; Details.TextColor3 = Color3.new(1, 1, 1); Details.TextWrapped = true; Details.MultiLine = true; Details.ClearTextOnFocus = false; Details.Font = Enum.Font.Code; Details.TextSize = 13; Details.TextXAlignment = Enum.TextXAlignment.Left; Details.TextYAlignment = Enum.TextYAlignment.Top; Details.Text = ""; Details.Parent = DetailsScroll
 
 local BanListTitle = Instance.new("TextLabel")
-BanListTitle.Size = UDim2.new(0, 150, 0, 20)
-BanListTitle.Position = UDim2.new(0, 662, 0, 125)
-BanListTitle.BackgroundTransparency = 1
-BanListTitle.Text = "BAN LIST"
-BanListTitle.TextColor3 = Color3.fromRGB(255, 100, 100)
-BanListTitle.Font = Enum.Font.SourceSansBold
-BanListTitle.TextSize = 14
-BanListTitle.Parent = ContentFrame
+BanListTitle.Size = UDim2.new(0, 150, 0, 20); BanListTitle.Position = UDim2.new(0, 662, 0, 125); BanListTitle.BackgroundTransparency = 1; BanListTitle.Text = "BAN LIST"; BanListTitle.TextColor3 = Color3.fromRGB(255, 100, 100); BanListTitle.Font = Enum.Font.SourceSansBold; BanListTitle.TextSize = 14; BanListTitle.Parent = ContentFrame
 
 RedListScroll = Instance.new("ScrollingFrame")
-RedListScroll.Position = UDim2.new(0, 662, 0, 145)
-RedListScroll.Size = UDim2.new(0, 150, 0, 250)
-RedListScroll.BackgroundColor3 = Color3.fromRGB(30, 15, 15)
-RedListScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-RedListScroll.BorderSizePixel = 0
-RedListScroll.ScrollBarThickness = 4
-RedListScroll.Parent = ContentFrame
+RedListScroll.Position = UDim2.new(0, 662, 0, 145); RedListScroll.Size = UDim2.new(0, 150, 0, 250); RedListScroll.BackgroundColor3 = Color3.fromRGB(30, 15, 15); RedListScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; RedListScroll.BorderSizePixel = 0; RedListScroll.ScrollBarThickness = 4; RedListScroll.Parent = ContentFrame
 
 local redListUI = Instance.new("UIListLayout")
 redListUI.SortOrder = Enum.SortOrder.LayoutOrder
