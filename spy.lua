@@ -228,13 +228,9 @@ end
 
 local function addLog(rem, args, isSelf, typeLabel)
     if (typeLabel == "FS" and not spyFS) or (typeLabel == "FC" and not spyFC) or (typeLabel == "IS" and not spyIS) then return end
-    
-    -- ИНТЕГРАЦИЯ SELF: если selfMode выключен, блокируем запись своих ивентов полностью
-    if isSelf and not selfMode then return end
-    
     local eventPath = getSafePath(rem)
     
-    -- Чужие ивенты проверяем по бан-листу
+    -- Твои ивенты ИГНОРИРУЮТ бан-лист
     if not isSelf and ManualBannedPaths[eventPath] then return end
 
     local function parseValue(v, d, pretty, indent)
@@ -298,21 +294,33 @@ local function addLog(rem, args, isSelf, typeLabel)
     
     local fArgs, fArgsP = table.concat(argList, ","), table.concat(argListPretty, ",\n")
     
-    -- Проверка на дубликаты (память)
+    -- ЛОГИКА ПРОВЕРКИ СУЩЕСТВОВАНИЯ
     for _, m in ipairs(MainMemory) do
         if m.path == eventPath and m.isSelf == isSelf then
-            if controlMode then 
-                if m.argsStr == fArgs then return end 
+            if isSelf then
+                if selfMode then 
+                    -- Режим ON: блокируем любой повтор по пути
+                    return 
+                else 
+                    -- Режим OFF: блокируем только если и путь, и аргументы СОВПАЛИ
+                    if m.argsStr == fArgs then return end 
+                end
+            else
+                -- Для сервера (Control)
+                if controlMode then 
+                    if m.path == eventPath then return end 
+                else
+                    if m.argsStr == fArgs then return end 
+                end
             end
         end
     end
 
     local method = (typeLabel == "IS" and "InvokeServer" or (typeLabel == "FC" and "FireClient" or "FireServer"))
-    
     local log = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, fArgs=="" and "None" or fArgs, eventPath, method, fArgs)
     local logP = string.format("Type: %s\n\nPath: %s\n\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, fArgsP=="" and "None" or "\n"..fArgsP, eventPath, method, fArgs)
 
-    -- Анти-спам для чужих
+    -- Анти-спам ТОЛЬКО для чужих ивентов
     if not isSelf and not controlMode and antiSpam then
         if (tick() - (AntiSpamCooldowns[eventPath] or 0)) < 0.4 then
             AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
@@ -330,17 +338,7 @@ local function addLog(rem, args, isSelf, typeLabel)
         AntiSpamCooldowns[eventPath] = tick()
     end
 
-    local newEvent = {
-        guid = generateGUID(), 
-        name = tostring(rem.Name), 
-        type = typeLabel, 
-        isSelf = isSelf, 
-        fullText = log, 
-        fullTextPretty = logP, 
-        path = eventPath, 
-        argsStr = fArgs,
-        timestamp = tick()
-    }
+    local newEvent = {guid = generateGUID(), name = tostring(rem.Name), type = typeLabel, isSelf = isSelf, fullText = log, fullTextPretty = logP, path = eventPath, argsStr = fArgs}
     table.insert(MainMemory, 1, newEvent)
 end
 
@@ -418,7 +416,7 @@ MinBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- RENDER LOOP (С ИНТЕГРАЦИЕЙ ПРИОРИТЕТА SELF)
+-- RENDER LOOP
 task.spawn(function()
     while task.wait(0.5) do
         if ContentFrame.Visible and #MainMemory ~= lastCount then 
@@ -426,11 +424,7 @@ task.spawn(function()
             for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
             for i, d in ipairs(MainMemory) do
                 local b = Instance.new("TextButton")
-                b.Size, b.BorderSizePixel = UDim2.new(1, -6, 0, 30), 0
-                
-                -- ПРИОРИТЕТ: Self ивенты всегда выше (LayoutOrder)
-                b.LayoutOrder = d.isSelf and -1000000000 - i or i
-                
+                b.Size, b.LayoutOrder, b.BorderSizePixel = UDim2.new(1, -6, 0, 30), i, 0
                 b.Text = string.format("[%s]%s %s", d.type, (d.isSelf and " [S]" or ""), d.name)
                 b:SetAttribute("GUID", d.guid)
                 b:SetAttribute("IsSelf", d.isSelf)
@@ -515,13 +509,6 @@ end)
 SelfBtn.MouseButton1Click:Connect(function() 
     selfMode = not selfMode
     SelfBtn.Text, SelfBtn.BackgroundColor3, lastCount = "SELF: "..(selfMode and "ON" or "OFF"), selfMode and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(150, 50, 50), -1
-    
-    -- При выключении selfMode удаляем текущие self-ивенты из памяти для чистоты (как в старой версии)
-    if not selfMode then
-        local nM = {}
-        for _, m in ipairs(MainMemory) do if not m.isSelf then table.insert(nM, m) end end
-        MainMemory = nM
-    end
 end)
 
 AntiSpamBtn.MouseButton1Click:Connect(function() 
