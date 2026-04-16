@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.7.1 FIXED & OPTIMIZED ]] --
+-- [[ KRALLDEN SPY v9.7.2 FIXED & OPTIMIZED ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -157,7 +157,7 @@ local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Header.ZIndex = 10; Header.BorderSizePixel = 0; Header.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0); Title.Text = "KRALLDEN SPY v9.7.1"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0; Title.Parent = Header
+Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0); Title.Text = "KRALLDEN SPY v9.7.2"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0; Title.Parent = Header
 
 local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0; MinBtn.Parent = Header
@@ -557,7 +557,8 @@ ExecBtn.MouseButton1Click:Connect(function()
                     path = currentContent:match("Path:%s*(.-)\n\n"),
                     argsStr = currentContent:match("Args:?%s*(.-)%s*\n\nScript"),
                     method = currentContent:match("Script:\n.-:(%w+)%("),
-                    fullText = b.details 
+                    fullText = b.details,
+                    fullTextPretty = b.detailsPretty
                 }
                 break 
             end
@@ -570,7 +571,15 @@ ExecBtn.MouseButton1Click:Connect(function()
         local cleanNewArgs = newArgs and newArgs:gsub("^%s*(.-)%s*$", "%1") or ""
         local cleanOldArgs = original.argsStr and original.argsStr:gsub("^%s*(.-)%s*$", "%1") or "None"
         
-        if cleanNewArgs ~= cleanOldArgs and cleanNewArgs ~= "" then
+        local cleanOldArgsPretty = "None"
+        if original.fullTextPretty then
+            local extracted = original.fullTextPretty:match("Args:?%s*(.-)%s*\n\nScript")
+            if extracted then
+                cleanOldArgsPretty = extracted:gsub("^%s*(.-)%s*$", "%1")
+            end
+        end
+
+        if cleanNewArgs ~= cleanOldArgs and cleanNewArgs ~= cleanOldArgsPretty and cleanNewArgs ~= "" then
             local path = currentContent:match("Path:%s*(.-)\n\n") or original.path
             local method = original.method or "FireServer"
             finalScript = string.format("%s:%s(%s)", path, method, (cleanNewArgs == "None" and "" or cleanNewArgs))
