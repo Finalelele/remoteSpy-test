@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.5.8 ]] --
+-- [[ KRALLDEN SPY v9.5.9 ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -53,7 +53,7 @@ local function generateGUID()
     return tostring(tick()) .. "-" .. tostring(math.random(1, 100000)) 
 end
 
-local RedListScroll, Scroll, DetailsScroll, Details, ContentFrame, detailList
+local RedListScroll, Scroll, DetailsScroll, Details, ContentFrame
 
 -- Функция фидбека
 local activeFeedbacks = {}
@@ -99,24 +99,26 @@ local function refreshSelectionColors()
     end
 end
 
--- ИСПРАВЛЕННАЯ ФУНКЦИЯ СКРОЛЛА
+-- ИСПРАВЛЕННАЯ ФУНКЦИЯ СКРОЛЛА (БЕЗ КОНФЛИКТОВ)
 local function forceUpdateCanvas()
-    task.defer(function()
-        if Details and DetailsScroll then
-            -- Roblox UI иногда нужно время на пересчет TextBounds
-            -- Используем TextBounds.Y для получения точной высоты текста в пикселях
-            local textHeight = Details.TextBounds.Y
-            local padding = 40
-            
-            DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, textHeight + padding)
-            DetailsScroll.CanvasPosition = Vector2.new(0, 0)
-        end
-    end)
+    task.wait() -- Ждем один кадр для обновления TextBounds
+    if Details and DetailsScroll then
+        local textHeight = Details.TextBounds.Y
+        local padding = 20
+        
+        -- Вручную задаем высоту TextBox, чтобы не зависеть от AutomaticSize
+        Details.Size = UDim2.new(1, 0, 0, textHeight)
+        
+        -- Устанавливаем размер скролла точно под текст
+        DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, textHeight + padding)
+        DetailsScroll.CanvasPosition = Vector2.new(0, 0)
+    end
 end
 
 local function updateDetailsView()
     if not currentSelectionGUID then 
         Details.Text = ""
+        forceUpdateCanvas()
         return 
     end
     
@@ -147,7 +149,6 @@ local function updateDetailsView()
         end
     end
     
-    -- Вызываем обновление скролла после установки текста
     forceUpdateCanvas()
 end
 
@@ -197,7 +198,7 @@ local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0)
 Title.BackgroundTransparency = 1
 Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.5.8"
+Title.Text = "KRALLDEN SPY v9.5.9"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 16
@@ -252,7 +253,7 @@ Scroll.BorderSizePixel = 0
 local scrollList = Instance.new("UIListLayout", Scroll)
 scrollList.SortOrder = Enum.SortOrder.LayoutOrder
 
--- DETAILS
+-- DETAILS (ИСПРАВЛЕННЫЙ КОНТЕЙНЕР)
 DetailsScroll = Instance.new("ScrollingFrame", ContentFrame)
 DetailsScroll.Name = "DetailsScroll"
 DetailsScroll.Position = UDim2.new(0, 205, 0, 8)
@@ -262,8 +263,7 @@ DetailsScroll.BorderSizePixel = 0
 DetailsScroll.ScrollBarThickness = 6
 DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
 
-detailList = Instance.new("UIListLayout", DetailsScroll)
-detailList.SortOrder = Enum.SortOrder.LayoutOrder
+-- ВАЖНО: Никакого UIListLayout здесь больше нет!
 
 local detailPad = Instance.new("UIPadding", DetailsScroll)
 detailPad.PaddingLeft = UDim.new(0, 10)
@@ -274,7 +274,7 @@ detailPad.PaddingBottom = UDim.new(0, 10)
 Details = Instance.new("TextBox", DetailsScroll)
 Details.Name = "DetailsBox"
 Details.Size = UDim2.new(1, 0, 0, 0)
-Details.AutomaticSize = Enum.AutomaticSize.Y
+Details.AutomaticSize = Enum.AutomaticSize.None -- Выключено для ручного контроля
 Details.BackgroundTransparency = 1
 Details.TextColor3 = Color3.new(1, 1, 1)
 Details.TextWrapped = true
@@ -536,6 +536,7 @@ DelBtn.MouseButton1Click:Connect(function()
             lastCount = -1
             currentSelectionGUID = nil
             Details.Text = ""
+            forceUpdateCanvas()
         end
     end
 end)
@@ -563,6 +564,7 @@ BlockBtn.MouseButton1Click:Connect(function()
                     currentSelectionGUID = nil
                     updateRedListUI()
                     Details.Text = "Banned."
+                    forceUpdateCanvas()
                     feedback(BlockBtn, "BANNED")
                 end
                 break
