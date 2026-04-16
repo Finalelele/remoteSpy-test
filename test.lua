@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.6.7 FIXED ]] --
+-- [[ KRALLDEN SPY v9.6.8 FIXED ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -155,7 +155,7 @@ local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Header.ZIndex = 10; Header.BorderSizePixel = 0; Header.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0); Title.Text = "KRALLDEN SPY v9.6.7"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0; Title.Parent = Header
+Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0); Title.Text = "KRALLDEN SPY v9.6.8"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0; Title.Parent = Header
 
 local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0; MinBtn.Parent = Header
@@ -270,13 +270,15 @@ local function addLog(rem, args, isSelf, typeLabel)
             res = res .. (pretty and string.rep("  ", indent) .. "}" or "}")
             return res == "{}" and "{}" or res
         elseif t == "CFrame" then
+            local comp = {v:GetComponents()}
             if pretty then
-                local comp = {v:GetComponents()}
-                return string.format("CFrame.new(\n%s%.3f, %.3f, %.3f,\n%s%.3f, %.3f, %.3f,\n%s%.3f, %.3f, %.3f,\n%s%.3f\n%s)",
+                -- FIX: Передаем все 12 аргументов для конструктора CFrame
+                return string.format("CFrame.new(\n%s%.3f, %.3f, %.3f,\n%s%.3f, %.3f, %.3f,\n%s%.3f, %.3f, %.3f,\n%s%.3f, %.3f, %.3f\n%s)",
                     string.rep("  ", indent+1), comp[1], comp[2], comp[3],
                     string.rep("  ", indent+1), comp[4], comp[5], comp[6],
                     string.rep("  ", indent+1), comp[7], comp[8], comp[9],
-                    string.rep("  ", indent+1), comp[10], string.rep("  ", indent))
+                    string.rep("  ", indent+1), comp[10], comp[11], comp[12],
+                    string.rep("  ", indent))
             else
                 return "CFrame.new(" .. tostring(v) .. ")"
             end
@@ -554,7 +556,7 @@ ExecBtn.MouseButton1Click:Connect(function()
         local f, err = loadstring(finalScript)
         if f then 
             task.spawn(f) 
-            feedback(ExecBtn, "DONE!") 
+            feedback(ExecBtn, "EXECUTED!") -- Изменено с DONE! на EXECUTED!
         else 
             warn("EXECUTE ERROR:", err)
             feedback(ExecBtn, "ERROR!") 
@@ -588,5 +590,4 @@ end
 createTypeBtn("FS SPY: ON", UDim2.new(0, 662, 0, 8), spyFS, Color3.fromRGB(130, 70, 220), "FS")
 createTypeBtn("FC SPY: OFF", UDim2.new(0, 662, 0, 48), spyFC, Color3.fromRGB(50, 150, 255), "FC")
 createTypeBtn("IS SPY: OFF", UDim2.new(0, 662, 0, 88), spyIS, Color3.fromRGB(255, 150, 50), "IS")
-
 updateRedListUI()
