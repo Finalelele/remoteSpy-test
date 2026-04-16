@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.5.0 - TEXTLABEL STABILITY FIX ]] --
+-- [[ KRALLDEN SPY v9.5.6 - MANUAL REFRESH ONLY ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -42,7 +42,7 @@ local sortArgs = false
 
 local function generateGUID() return tostring(tick()) .. "-" .. tostring(math.random(1, 100000)) end
 
-local RedListScroll, Scroll, DetailsScroll, Details, ContentFrame
+local RedListScroll, Scroll, DetailsScroll, Details, ContentFrame, detailList
 
 -- Функция фидбека
 local activeFeedbacks = {}
@@ -76,23 +76,41 @@ local function refreshSelectionColors()
     end
 end
 
+-- ФУНКЦИЯ РАСЧЕТА ВЫСОТЫ (ТОЛЬКО ПРИ КЛИКЕ)
+local function forceUpdateCanvas()
+    task.defer(function()
+        if detailList and DetailsScroll then
+            -- Даем небольшое время UI обновить AbsoluteContentSize
+            DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, detailList.AbsoluteContentSize.Y + 40)
+        end
+    end)
+end
+
 local function updateDetailsView()
     if not currentSelectionGUID then
         Details.Text = ""
         return
     end
+    
+    local found = false
     for _, d in ipairs(MainMemory) do
         if d.guid == currentSelectionGUID then
             Details.Text = sortArgs and d.fullTextPretty or d.fullText
-            return
+            found = true; break
         end
     end
-    for _, data in pairs(ManualBannedPaths) do
-        if data.guid == currentSelectionGUID then
-            Details.Text = sortArgs and (data.detailsPretty or data.details) or data.details
-            return
+    
+    if not found then
+        for _, data in pairs(ManualBannedPaths) do
+            if data.guid == currentSelectionGUID then
+                Details.Text = sortArgs and (data.detailsPretty or data.details) or data.details
+                found = true; break
+            end
         end
     end
+
+    -- РАССЧИТЫВАЕМ ВЫСОТУ ТОЛЬКО ЗДЕСЬ
+    forceUpdateCanvas()
 end
 
 local function updateRedListUI()
@@ -104,8 +122,11 @@ local function updateRedListUI()
         b:SetAttribute("GUID", data.guid)
         b:SetAttribute("Path", path)
         b.BackgroundColor3 = (currentSelectionGUID == data.guid) and Color3.fromRGB(100, 50, 200) or Color3.fromRGB(100, 35, 35)
-        b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSansBold; b.TextSize = 10; b.BorderSizePixel = 0
-        b.Text = " [X] " .. (path:match("[^%.%[%]]+$") or path)
+        b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.SourceSans; b.TextSize = 11; b.BorderSizePixel = 0
+        
+        -- Имя ивента без полного пути
+        local shortName = data.name or (path:match("[^%.%[%]]+$") or path):gsub('^%["', ''):gsub('"%]$', '')
+        b.Text = " [X] " .. shortName
         
         b.MouseButton1Click:Connect(function() 
             currentSelectionGUID = data.guid
@@ -121,7 +142,7 @@ Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(2
 
 local Title = Instance.new("TextLabel", Header)
 Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.5.0"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
+Title.Text = "KRALLDEN SPY v9.5.6"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0
 
 local MinBtn = Instance.new("TextButton", Header)
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "_"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0
@@ -147,7 +168,7 @@ Scroll = Instance.new("ScrollingFrame", ContentFrame)
 Scroll.Position = UDim2.new(0, 8, 0, 8); Scroll.Size = UDim2.new(0, 190, 1, -16); Scroll.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y; Scroll.BorderSizePixel = 0
 Instance.new("UIListLayout", Scroll).SortOrder = Enum.SortOrder.LayoutOrder
 
--- ФИКС DETAILS (Переход на TextLabel + UIListLayout)
+-- DETAILS (ТЕПЕРЬ СТАБИЛЬНЫЙ TEXTBOX)
 DetailsScroll = Instance.new("ScrollingFrame", ContentFrame)
 DetailsScroll.Name = "DetailsScroll"
 DetailsScroll.Position = UDim2.new(0, 205, 0, 8)
@@ -156,23 +177,23 @@ DetailsScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
 DetailsScroll.BorderSizePixel = 0
 DetailsScroll.ScrollBarThickness = 6
 DetailsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-DetailsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
-local detailList = Instance.new("UIListLayout", DetailsScroll)
+detailList = Instance.new("UIListLayout", DetailsScroll)
 detailList.SortOrder = Enum.SortOrder.LayoutOrder
-detailList.Padding = UDim.new(0, 5)
 
 local detailPad = Instance.new("UIPadding", DetailsScroll)
 detailPad.PaddingLeft = UDim.new(0, 10); detailPad.PaddingRight = UDim.new(0, 10)
 detailPad.PaddingTop = UDim.new(0, 10); detailPad.PaddingBottom = UDim.new(0, 10)
 
-Details = Instance.new("TextLabel", DetailsScroll)
-Details.Name = "DetailsLabel"
+Details = Instance.new("TextBox", DetailsScroll)
+Details.Name = "DetailsBox"
 Details.Size = UDim2.new(1, 0, 0, 0)
 Details.AutomaticSize = Enum.AutomaticSize.Y
 Details.BackgroundTransparency = 1
 Details.TextColor3 = Color3.new(1, 1, 1)
 Details.TextWrapped = true
+Details.MultiLine = true
+Details.ClearTextOnFocus = false
 Details.Font = Enum.Font.Code
 Details.TextSize = 13
 Details.TextXAlignment = Enum.TextXAlignment.Left
@@ -258,9 +279,7 @@ local function addLog(rem, args, isSelf, typeLabel)
     for _, m in ipairs(MainMemory) do
         if m.path == eventPath and m.isSelf == isSelf then
             if isSelf then
-                if (selfMode and true) or (not selfMode and m.argsStr == finalArgsStr) then
-                    alreadyExists = true; break
-                end
+                if (selfMode and true) or (not selfMode and m.argsStr == finalArgsStr) then alreadyExists = true; break end
             else
                 if controlMode then alreadyExists = true; break
                 else if m.argsStr == finalArgsStr then alreadyExists = true; break end end
@@ -276,13 +295,12 @@ local function addLog(rem, args, isSelf, typeLabel)
     local logDetails = string.format("Type: %s\nPath: %s\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, displayArgs, eventPath, methodName, finalArgsStr)
     local logDetailsPretty = string.format("Type: %s\nPath: %s\nArgs: %s\n\nScript:\n%s:%s(%s)", typeLabel, eventPath, displayArgsPretty, eventPath, methodName, finalArgsStr)
 
-    -- ANTI-SPAM
     if not isSelf and not controlMode and antiSpam then
         if (tick() - (AntiSpamCooldowns[eventPath] or 0)) < 0.4 then
             AntiSpamCounts[eventPath] = (AntiSpamCounts[eventPath] or 0) + 1
             if AntiSpamCounts[eventPath] >= 4 then
                 ManualBannedPaths[eventPath] = {
-                    guid = generateGUID(), 
+                    guid = generateGUID(), name = tostring(rem.Name),
                     details = "AUTO-BANNED BY ANTI-SPAM\n\n" .. logDetails,
                     detailsPretty = "AUTO-BANNED BY ANTI-SPAM\n\n" .. logDetailsPretty
                 }
@@ -355,14 +373,12 @@ BlockBtn.MouseButton1Click:Connect(function()
                 local p = d.path
                 if p then
                     ManualBannedPaths[p] = {
-                        guid = d.guid, 
+                        guid = d.guid, name = d.name,
                         details = "MANUAL BANNED:\n\n" .. d.fullText,
                         detailsPretty = "MANUAL BANNED:\n\n" .. d.fullTextPretty
                     }
                     local nM = {}
-                    for _, m in ipairs(MainMemory) do 
-                        if not (m.path == p and not m.isSelf) then nM[#nM+1] = m end 
-                    end
+                    for _, m in ipairs(MainMemory) do if not (m.path == p and not m.isSelf) then nM[#nM+1] = m end end
                     MainMemory = nM; lastCount = -1; currentSelectionGUID = nil; updateRedListUI(); Details.Text = "Banned."
                     feedback(BlockBtn, "BANNED")
                 end; break
@@ -397,7 +413,7 @@ task.spawn(function()
             b.Text = string.format("[%s]%s %s", d.type, (d.isSelf and " [S]" or ""), d.name)
             b:SetAttribute("GUID", d.guid); b:SetAttribute("IsSelf", d.isSelf)
             b.BackgroundColor3 = (currentSelectionGUID == d.guid) and Color3.fromRGB(100, 50, 200) or (d.isSelf and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(40, 40, 45))
-            b.TextColor3 = Color3.new(1,1,1); b.BorderSizePixel = 0; b.Font = Enum.Font.SourceSansBold; b.TextSize = 12
+            b.TextColor3 = Color3.new(1,1,1); b.BorderSizePixel = 0; b.Font = Enum.Font.SourceSans; b.TextSize = 12
             b.MouseButton1Click:Connect(function()
                 currentSelectionGUID = d.guid; updateDetailsView(); refreshSelectionColors()
             end)
@@ -447,7 +463,13 @@ local ExecuteBtn = createBotBtn("EXECUTE", UDim2.new(0, 432, 0.83, 0), nil, Colo
 ExecuteBtn.MouseButton1Click:Connect(function() 
     local s = Details.Text:match("Script:\n(.*)") or Details.Text
     if s and s ~= "" then 
-        local f = loadstring(s); if f then task.spawn(f); feedback(ExecuteBtn, "EXECUTED!") end 
+        local f, err = loadstring(s); 
+        if f then 
+            task.spawn(f); feedback(ExecuteBtn, "EXECUTED!") 
+        else
+            warn("Execute Error: " .. tostring(err))
+            feedback(ExecuteBtn, "ERROR!")
+        end 
     end 
 end)
 
