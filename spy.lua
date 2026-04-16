@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.6.5 FIXED & UPDATED ]] --
+-- [[ KRALLDEN SPY v9.6.6 FIXED & UPDATED ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -33,7 +33,6 @@ end)
 
 local Main = Instance.new("Frame")
 Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20); Main.Size = UDim2.new(0, 820, 0, 440); Main.Position = UDim2.new(0.5, -410, 0.5, -220); Main.Active = true; Main.Draggable = true; Main.BorderSizePixel = 0; 
--- ФИКС ОШИБКИ: Убрана строка Main.Parent = Main
 Main.Parent = ScreenGui
 
 local MainMemory, PathFilter, ManualBannedPaths = {}, {}, {}
@@ -155,7 +154,7 @@ local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Header.ZIndex = 10; Header.BorderSizePixel = 0; Header.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0); Title.Text = "KRALLDEN SPY v9.6.5"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0; Title.Parent = Header
+Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0); Title.Text = "KRALLDEN SPY v9.6.6"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0; Title.Parent = Header
 
 local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0; MinBtn.Parent = Header
@@ -293,15 +292,15 @@ local function addLog(rem, args, isSelf, typeLabel)
     
     local fArgs, fArgsP = table.concat(argList, ","), table.concat(argListPretty, ",\n")
     
-    -- ИСПРАВЛЕННАЯ ЛОГИКА ДУБЛИКАТОВ
+    -- ИСПРАВЛЕННАЯ ЛОГИКА ДУБЛИКАТОВ (Фикс selfMode/controlMode OFF)
     for _, m in ipairs(MainMemory) do
         if m.path == eventPath and m.isSelf == isSelf then
             if isSelf then
-                if selfMode then return end -- SELF ON: Блок по пути
-                if m.argsStr == fArgs then return end -- SELF OFF: Блок только если аргументы те же
+                if selfMode then return end -- Блокируем всё от себя
+                if m.argsStr == fArgs then return end -- Блокируем только если аргументы те же
             else
-                if controlMode then return end -- CONTROL ON: Блок по пути
-                if m.argsStr == fArgs then return end -- CONTROL OFF: Блок если аргументы те же
+                if controlMode then return end -- Блокируем всё от сервера
+                if m.argsStr == fArgs then return end -- Блокируем только если аргументы те же
             end
         end
     end
@@ -417,7 +416,7 @@ task.spawn(function()
                 b.Size, b.LayoutOrder, b.BorderSizePixel = UDim2.new(1, -6, 0, 30), i, 0
                 b.Text = string.format("[%s]%s %s", d.type, (d.isSelf and " [S]" or ""), d.name)
                 b:SetAttribute("GUID", d.guid)
-                b:SetAttribute("IsSelf", d.isSelf)
+                b.SetAttribute(b, "IsSelf", d.isSelf)
                 b.BackgroundColor3 = (currentSelectionGUID == d.guid) and Color3.fromRGB(100, 50, 200) or (d.isSelf and Color3.fromRGB(45, 90, 45) or Color3.fromRGB(40, 40, 45))
                 b.TextColor3, b.Font, b.TextSize = Color3.new(1,1,1), Enum.Font.SourceSans, 12
                 b.MouseButton1Click:Connect(function() currentSelectionGUID = d.guid updateDetailsView() refreshSelectionColors() end)
@@ -475,7 +474,7 @@ ClearSelfBtn.MouseButton1Click:Connect(function()
     feedback(ClearSelfBtn, "CLEARED")
 end)
 
--- ИСПРАВЛЕННАЯ КНОПКА EXECUTE
+-- ИСПРАВЛЕННАЯ КНОПКА EXECUTE (Текст EXECUTED!)
 local ExecBtn = createBotBtn("EXECUTE", UDim2.new(0, 432, 0.83, 0), nil, Color3.fromRGB(120, 60, 60))
 ExecBtn.MouseButton1Click:Connect(function() 
     local text = Details.Text
@@ -493,7 +492,7 @@ ExecBtn.MouseButton1Click:Connect(function()
 
     if s and s ~= "" then 
         local f, err = loadstring(s)
-        if f then task.spawn(f) feedback(ExecBtn, "DONE!") else feedback(ExecBtn, "ERROR!") warn(err) end 
+        if f then task.spawn(f) feedback(ExecBtn, "EXECUTED!") else feedback(ExecBtn, "ERROR!") warn(err) end 
     end 
 end)
 
