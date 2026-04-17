@@ -36,6 +36,7 @@ Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20); Main.Size = UDim2.new(0, 820
 
 local MainMemory, PathFilter, ManualBannedPaths = {}, {}, {}
 local AntiSpamCooldowns, AntiSpamCounts = {}, {}
+local MAX_MEMORY = 300 -- ЛИМИТ ДЛЯ ОПТИМИЗАЦИИ ЭМУЛЯТОРА
 
 local SelfStorage = {} 
 
@@ -221,20 +222,17 @@ local function getSafePath(obj)
         local t = obj
         while t and t ~= game do 
             local n = tostring(t.Name)
-            -- Экранируем символы, чтобы имена с переносами или кавычками не ломали синтаксис Execute
             local escapedName = n:gsub("\\", "\\\\"):gsub('"', '\\"'):gsub('\n', '\\n'):gsub('\r', '\\r')
             local safeName = (n:match("^%d") or n:match("[%s%W]")) and '["'..escapedName..'"]' or n
             
             if p == "" then
                 p = safeName
             else
-                -- Если ПОТОМОК (p) начинается с [, точка не ставится.
                 p = safeName .. (p:sub(1,1) == "[" and "" or ".") .. p
             end
             t = t.Parent 
         end 
     end)
-    -- Если сам путь начинается с [, склеиваем с game без точки
     return (p:sub(1,1) == "[" and "game" or "game.") .. p
 end
 
@@ -251,7 +249,6 @@ local function addLog(rem, args, isSelf, typeLabel)
         local t = typeof(v)
         
         if t == "string" then 
-            -- Экранируем переносы строк внутри аргументов для идеального форматирования UI
             local safeStr = v:gsub("\\", "\\\\"):gsub('"', '\\"'):gsub("\n", "\\n"):gsub("\r", "\\r"):gsub("%z", "")
             return '"' .. safeStr .. '"' 
         elseif t == "table" then
@@ -366,19 +363,37 @@ local function addLog(rem, args, isSelf, typeLabel)
         argsStr = fArgs,
         method = method
     }
-    for i = #MainMemory, 1, -1 do MainMemory[i+1] = MainMemory[i] end
-    MainMemory[1] = newEvent
+    
+    -- ОПТИМИЗАЦИЯ ДЛЯ ЭМУЛЯТОРОВ: Нативный insert и лимитер логов
+    table.insert(MainMemory, 1, newEvent)
+    if #MainMemory > MAX_MEMORY then
+        table.remove(MainMemory)
+    end
 end
 
 -- HOOKS
 local mt = getrawmetatable(game)
 local old = mt.__namecall
 setreadonly(mt, false)
+
+-- ОПТИМИЗАЦИЯ: Кэшируем методы заранее
+local namecallMethods = {
+    FireServer = "FS", fireserver = "FS",
+    InvokeServer = "IS", invokeserver = "IS",
+    FireClient = "FC", fireclient = "FC"
+}
+
 mt.__namecall = newcclosure(function(self, ...)
-    local m, s = getnamecallmethod():lower(), checkcaller()
-    if m == "fireserver" then task.spawn(addLog, self, {...}, s, "FS")
-    elseif m == "fireclient" then task.spawn(addLog, self, {...}, s, "FC")
-    elseif m == "invokeserver" then task.spawn(addLog, self, {...}, s, "IS") end
+    local m = getnamecallmethod()
+    local spyType = namecallMethods[tostring(m)]
+    
+    if spyType then
+        -- ОПТИМИЗАЦИЯ: Фильтруем до вызова тяжелого task.spawn
+        if (spyType == "FS" and spyFS) or (spyType == "FC" and spyFC) or (spyType == "IS" and spyIS) then
+            local s = checkcaller()
+            task.spawn(addLog, self, {...}, s, spyType)
+        end
+    end
     return old(self, ...)
 end)
 setreadonly(mt, true)
@@ -412,7 +427,6 @@ DelBtn.MouseButton1Click:Connect(function()
         if targetEntry then
             targetPath = targetEntry.path
             
-            -- FIX: Удаляем запись из SelfStorage, чтобы она могла заспавниться снова
             if targetEntry.isSelf and SelfStorage[targetPath] then
                 for i, entry in ipairs(SelfStorage[targetPath]) do
                     if entry.args == targetEntry.argsStr then
@@ -470,9 +484,9 @@ MinBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- RENDER LOOP
+-- RENDER LOOP (Слегка увеличен таймаут для разгрузки эмулятора)
 task.spawn(function()
-    while task.wait(0.5) do
+    while task.wait(0.7) do
         if ContentFrame.Visible and #MainMemory ~= lastCount then 
             lastCount = #MainMemory
             for _, v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
