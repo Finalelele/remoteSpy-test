@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.7.2 FIXED & OPTIMIZED ]] --
+-- [[ KRALLDEN SPY v9.7.3 FIXED & OPTIMIZED ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -157,7 +157,7 @@ local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 35); Header.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Header.ZIndex = 10; Header.BorderSizePixel = 0; Header.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0); Title.Text = "KRALLDEN SPY v9.7.2"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0; Title.Parent = Header
+Title.Size = UDim2.new(0, 200, 1, 0); Title.BackgroundTransparency = 1; Title.Position = UDim2.new(0, 15, 0, 0); Title.Text = "KRALLDEN SPY v9.7.3"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = Enum.Font.SourceSansBold; Title.TextSize = 16; Title.ZIndex = 11; Title.TextXAlignment = 0; Title.Parent = Header
 
 local MinBtn = Instance.new("TextButton")
 MinBtn.Size = UDim2.new(0, 45, 0, 35); MinBtn.Position = UDim2.new(1, -45, 0, 0); MinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 180); MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.new(1, 1, 1); MinBtn.TextSize = 22; MinBtn.ZIndex = 12; MinBtn.BorderSizePixel = 0; MinBtn.Parent = Header
@@ -214,19 +214,28 @@ local redListUI = Instance.new("UIListLayout")
 redListUI.SortOrder = Enum.SortOrder.LayoutOrder
 redListUI.Parent = RedListScroll
 
--- SMART PARSER
+-- SMART PARSER (FIXED LOGIC FOR BRACKETS)
 local function getSafePath(obj)
     local p = ""
     pcall(function() 
         local t = obj
         while t and t ~= game do 
             local n = tostring(t.Name)
-            local safeName = (n:match("^%d") or n:match("[%s%W]")) and '["'..n..'"]' or n
-            p = (p == "") and safeName or safeName .. (safeName:sub(1,1) == "[" and "" or ".") .. p
+            -- Экранируем символы, чтобы имена с переносами или кавычками не ломали синтаксис Execute
+            local escapedName = n:gsub("\\", "\\\\"):gsub('"', '\\"'):gsub('\n', '\\n'):gsub('\r', '\\r')
+            local safeName = (n:match("^%d") or n:match("[%s%W]")) and '["'..escapedName..'"]' or n
+            
+            if p == "" then
+                p = safeName
+            else
+                -- Если ПОТОМОК (p) начинается с [, точка не ставится.
+                p = safeName .. (p:sub(1,1) == "[" and "" or ".") .. p
+            end
             t = t.Parent 
         end 
     end)
-    return "game." .. p:gsub("%.%[", "[")
+    -- Если сам путь начинается с [, склеиваем с game без точки
+    return (p:sub(1,1) == "[" and "game" or "game.") .. p
 end
 
 local function addLog(rem, args, isSelf, typeLabel)
@@ -242,7 +251,9 @@ local function addLog(rem, args, isSelf, typeLabel)
         local t = typeof(v)
         
         if t == "string" then 
-            return '"' .. v:gsub("%z", "") .. '"' 
+            -- Экранируем переносы строк внутри аргументов для идеального форматирования UI
+            local safeStr = v:gsub("\\", "\\\\"):gsub('"', '\\"'):gsub("\n", "\\n"):gsub("\r", "\\r"):gsub("%z", "")
+            return '"' .. safeStr .. '"' 
         elseif t == "table" then
             local isArray, count = true, 0
             pcall(function() for k, val in pairs(v) do count = count + 1; if type(k) ~= "number" or k ~= count then isArray = false break end end end)
@@ -525,7 +536,6 @@ end)
 
 local ClearSelfBtn = createBotBtn("CLEAR SELF", UDim2.new(0, 544, 0.68, 0), UDim2.new(0, 108, 0, 58), Color3.fromRGB(100, 80, 60))
 ClearSelfBtn.MouseButton1Click:Connect(function()
-    -- FIX: Полная очистка списка кнопок Self и таблицы хранилища
     local nM = {}
     for _, m in ipairs(MainMemory) do if not m.isSelf then table.insert(nM, m) end end
     MainMemory = nM
