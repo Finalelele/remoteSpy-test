@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.8.3 FULL SOURCE RESTORED ]] --
+-- [[ KRALLDEN SPY v9.7.9 FULL SOURCE RESTORED ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -197,53 +197,46 @@ end
 
 -- Логика Бан-листа (UI)
 local function updateRedListUI()
-    task.defer(function()
-        pcall(function()
-            if not RedListScroll or not RedListScroll.Parent then 
-                return 
-            end
-            
-            -- Безопасная очистка через GetChildren
-            local children = RedListScroll:GetChildren()
-            for i = 1, #children do
-                local v = children[i]
-                if v:IsA("TextButton") then 
-                    v:Destroy()
-                end 
-            end
-            
-            for path, data in pairs(ManualBannedPaths) do
-                local b = Instance.new("TextButton")
-                b.Size = UDim2.new(1, -6, 0, 25)
-                
-                if currentSelectionGUID == data.guid then
-                    b.BackgroundColor3 = Color3.fromRGB(100, 50, 200)
-                else
-                    b.BackgroundColor3 = Color3.fromRGB(100, 35, 35)
-                end
-                
-                b.TextColor3 = Color3.new(1, 1, 1)
-                b.Font = Enum.Font.SourceSansBold
-                b.TextSize = 10
-                b.BorderSizePixel = 0
-                b.ClipsDescendants = true
-                
-                local displayPath = path:match("[^%.%[%]]+$") or path
-                b.Text = " [X] " .. displayPath
-                b.Parent = RedListScroll
-                
-                b:SetAttribute("GUID", data.guid)
-                b:SetAttribute("Path", path)
-                
-                b.MouseButton1Click:Connect(function() 
-                    currentSelectionGUID = data.guid
-                    Details.Text = getSortedDetails(data) 
-                    updateDetailsCanvas()
-                    refreshSelectionColors()
-                end)
-            end
+    if not RedListScroll then 
+        return 
+    end
+    
+    for _, v in pairs(RedListScroll:GetChildren()) do 
+        if v:IsA("TextButton") then 
+            v:Destroy() 
+        end 
+    end
+    
+    for path, data in pairs(ManualBannedPaths) do
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.new(1, -6, 0, 25)
+        
+        if currentSelectionGUID == data.guid then
+            b.BackgroundColor3 = Color3.fromRGB(100, 50, 200)
+        else
+            b.BackgroundColor3 = Color3.fromRGB(100, 35, 35)
+        end
+        
+        b.TextColor3 = Color3.new(1, 1, 1)
+        b.Font = Enum.Font.SourceSansBold
+        b.TextSize = 10
+        b.BorderSizePixel = 0
+        b.ClipsDescendants = true
+        
+        local displayPath = path:match("[^%.%[%]]+$") or path
+        b.Text = " [X] " .. displayPath
+        b.Parent = RedListScroll
+        
+        b:SetAttribute("GUID", data.guid)
+        b:SetAttribute("Path", path)
+        
+        b.MouseButton1Click:Connect(function() 
+            currentSelectionGUID = data.guid
+            Details.Text = getSortedDetails(data) 
+            updateDetailsCanvas()
+            refreshSelectionColors()
         end)
-    end)
+    end
 end
 
 -- ================= HEADER =================
@@ -258,7 +251,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 200, 1, 0)
 Title.BackgroundTransparency = 1
 Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.8.3"
+Title.Text = "KRALLDEN SPY v9.7.9"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 16
@@ -405,7 +398,6 @@ end
 
 -- ================= ADD LOG =================
 local function addLog(rem, args, isSelf, typeLabel)
-    if not rem then return end
     if typeLabel == "FS" and not spyFS then return end
     if typeLabel == "FC" and not spyFC then return end
     if typeLabel == "IS" and not spyIS then return end
@@ -465,7 +457,8 @@ local function addLog(rem, args, isSelf, typeLabel)
     end
 
     local argList = {}
-    for _, v in ipairs(args) do 
+    for i, v in ipairs(args) do 
+        -- Замена table.insert на индексы
         argList[#argList + 1] = parseValue(v)
     end
     
@@ -519,6 +512,7 @@ local function addLog(rem, args, isSelf, typeLabel)
                 local nM = {}
                 for _, m in ipairs(MainMemory) do 
                     if not (m.path == eventPath and not m.isSelf) then 
+                        -- Замена table.insert на индексы
                         nM[#nM + 1] = m 
                     end 
                 end
@@ -535,7 +529,7 @@ local function addLog(rem, args, isSelf, typeLabel)
         AntiSpamCooldowns[eventPath] = currentTime
     end
 
-    -- Добавление в память (New Log)
+    -- Добавление в память
     local newLog = { 
         guid = generateGUID(), 
         name = tostring(rem.Name), 
@@ -547,12 +541,13 @@ local function addLog(rem, args, isSelf, typeLabel)
         rawArgs = args 
     }
     
-    local memSize = #MainMemory
-    for idx = memSize, 1, -1 do
+    -- Кастомная вставка в начало таблицы без table.insert
+    for idx = #MainMemory, 1, -1 do
         MainMemory[idx + 1] = MainMemory[idx]
     end
     MainMemory[1] = newLog
     
+    -- Замена table.remove(MainMemory, #MainMemory)
     if #MainMemory > 150 then 
         MainMemory[#MainMemory] = nil 
     end
@@ -617,6 +612,7 @@ DelBtn.MouseButton1Click:Connect(function()
                 if m.guid == currentSelectionGUID then 
                     targetData = m 
                 else 
+                    -- Замена table.insert на индексы
                     nM[#nM + 1] = m 
                 end 
             end
@@ -657,6 +653,7 @@ BlockBtn.MouseButton1Click:Connect(function()
                 local nM = {}
                 for _, m in ipairs(MainMemory) do 
                     if not (m.path == d.path and not m.isSelf) then 
+                        -- Замена table.insert на индексы
                         nM[#nM + 1] = m 
                     end 
                 end
@@ -712,20 +709,20 @@ task.spawn(function()
         if #MainMemory == lastCount then continue end
         
         lastCount = #MainMemory
-        pcall(function()
-            for _, v in pairs(Scroll:GetChildren()) do 
-                if v:IsA("TextButton") then v:Destroy() end 
-            end
-        end)
+        for _, v in pairs(Scroll:GetChildren()) do 
+            if v:IsA("TextButton") then v:Destroy() end 
+        end
         
         local sortedMemory = {}
         for _, d in ipairs(MainMemory) do 
             if d.isSelf then 
+                -- Замена table.insert на индексы
                 sortedMemory[#sortedMemory + 1] = d 
             end 
         end
         for _, d in ipairs(MainMemory) do 
             if not d.isSelf then 
+                -- Замена table.insert на индексы
                 sortedMemory[#sortedMemory + 1] = d 
             end 
         end
@@ -836,6 +833,7 @@ ClearLogBtn.MouseButton1Click:Connect(function()
     local nM = {}
     for _, m in ipairs(MainMemory) do 
         if m.isSelf then 
+            -- Замена table.insert на индексы
             nM[#nM + 1] = m 
         end 
     end
@@ -849,6 +847,7 @@ ClearSelfBtn.MouseButton1Click:Connect(function()
     local nM = {}
     for _, m in ipairs(MainMemory) do 
         if not m.isSelf then 
+            -- Замена table.insert на индексы
             nM[#nM + 1] = m 
         end 
     end
