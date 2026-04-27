@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.8.1 FULL SOURCE RESTORED ]] --
+-- [[ KRALLDEN SPY v9.8.2 FULL SOURCE RESTORED ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -197,15 +197,15 @@ end
 
 -- Логика Бан-листа (UI)
 local function updateRedListUI()
-    -- Используем task.defer для предотвращения ошибки capability plugin
+    -- Использование task.defer гарантирует, что код выполнится в контексте UI потока
     task.defer(function()
-        if not RedListScroll then 
+        if not RedListScroll or not RedListScroll.Parent then 
             return 
         end
         
-        for _, v in pairs(RedListScroll:GetChildren()) do 
+        for _, v in ipairs(RedListScroll:GetChildren()) do 
             if v:IsA("TextButton") then 
-                v:Destroy() 
+                pcall(function() v:Destroy() end)
             end 
         end
         
@@ -254,7 +254,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 200, 1, 0)
 Title.BackgroundTransparency = 1
 Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.8.1"
+Title.Text = "KRALLDEN SPY v9.8.2"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 16
@@ -521,7 +521,7 @@ local function addLog(rem, args, isSelf, typeLabel)
                 MainMemory = nM
                 lastCount = -1
                 currentSelectionGUID = nil
-                updateRedListUI()
+                task.defer(updateRedListUI) -- Исправлено: defer для предотвращения capability error
                 return 
             end
         else 
