@@ -1,4 +1,4 @@
--- [[ KRALLDEN SPY v9.7.9 FULL SOURCE RESTORED ]] --
+-- [[ KRALLDEN SPY v9.8.0 FULL SOURCE RESTORED ]] --
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -251,7 +251,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(0, 200, 1, 0)
 Title.BackgroundTransparency = 1
 Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Text = "KRALLDEN SPY v9.7.9"
+Title.Text = "KRALLDEN SPY v9.8.0"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.Font = Enum.Font.SourceSansBold
 Title.TextSize = 16
@@ -457,8 +457,8 @@ local function addLog(rem, args, isSelf, typeLabel)
     end
 
     local argList = {}
-    for i, v in ipairs(args) do 
-        -- Замена table.insert на индексы
+    for _, v in ipairs(args) do 
+        -- Кастомная вставка вместо table.insert
         argList[#argList + 1] = parseValue(v)
     end
     
@@ -512,7 +512,6 @@ local function addLog(rem, args, isSelf, typeLabel)
                 local nM = {}
                 for _, m in ipairs(MainMemory) do 
                     if not (m.path == eventPath and not m.isSelf) then 
-                        -- Замена table.insert на индексы
                         nM[#nM + 1] = m 
                     end 
                 end
@@ -529,7 +528,7 @@ local function addLog(rem, args, isSelf, typeLabel)
         AntiSpamCooldowns[eventPath] = currentTime
     end
 
-    -- Добавление в память
+    -- Добавление в память (New Log)
     local newLog = { 
         guid = generateGUID(), 
         name = tostring(rem.Name), 
@@ -541,13 +540,16 @@ local function addLog(rem, args, isSelf, typeLabel)
         rawArgs = args 
     }
     
-    -- Кастомная вставка в начало таблицы без table.insert
-    for idx = #MainMemory, 1, -1 do
+    -- Кастомный сдвиг таблицы вместо table.insert(t, 1, val)
+    -- Мы идем с конца в начало и сдвигаем каждый элемент на 1 позицию вправо
+    local memSize = #MainMemory
+    for idx = memSize, 1, -1 do
         MainMemory[idx + 1] = MainMemory[idx]
     end
+    -- Вставляем новый лог в самое начало (чтобы в UI он был сверху)
     MainMemory[1] = newLog
     
-    -- Замена table.remove(MainMemory, #MainMemory)
+    -- Удаление старых записей если лимит превышен (150 логов)
     if #MainMemory > 150 then 
         MainMemory[#MainMemory] = nil 
     end
@@ -612,7 +614,6 @@ DelBtn.MouseButton1Click:Connect(function()
                 if m.guid == currentSelectionGUID then 
                     targetData = m 
                 else 
-                    -- Замена table.insert на индексы
                     nM[#nM + 1] = m 
                 end 
             end
@@ -653,7 +654,6 @@ BlockBtn.MouseButton1Click:Connect(function()
                 local nM = {}
                 for _, m in ipairs(MainMemory) do 
                     if not (m.path == d.path and not m.isSelf) then 
-                        -- Замена table.insert на индексы
                         nM[#nM + 1] = m 
                     end 
                 end
@@ -716,13 +716,11 @@ task.spawn(function()
         local sortedMemory = {}
         for _, d in ipairs(MainMemory) do 
             if d.isSelf then 
-                -- Замена table.insert на индексы
                 sortedMemory[#sortedMemory + 1] = d 
             end 
         end
         for _, d in ipairs(MainMemory) do 
             if not d.isSelf then 
-                -- Замена table.insert на индексы
                 sortedMemory[#sortedMemory + 1] = d 
             end 
         end
@@ -833,7 +831,6 @@ ClearLogBtn.MouseButton1Click:Connect(function()
     local nM = {}
     for _, m in ipairs(MainMemory) do 
         if m.isSelf then 
-            -- Замена table.insert на индексы
             nM[#nM + 1] = m 
         end 
     end
@@ -847,7 +844,6 @@ ClearSelfBtn.MouseButton1Click:Connect(function()
     local nM = {}
     for _, m in ipairs(MainMemory) do 
         if not m.isSelf then 
-            -- Замена table.insert на индексы
             nM[#nM + 1] = m 
         end 
     end
